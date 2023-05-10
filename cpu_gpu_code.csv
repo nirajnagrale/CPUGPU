@@ -1,0 +1,3942 @@
+CPU Code,GPU Code,CPU assembly code ,GPU ptx code,CPU runing time,GPU runing time
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define N 100000000
+
+int main()
+{
+    int sum = 0;
+    srand(time(NULL));
+    clock_t start = clock();
+
+    for (int i = 0; i < N; i++)
+    {
+        int x = rand() % 10;
+        if (x > 5) {
+            sum += x;
+        }
+    }
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Sum = %d\n"", sum);
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+#include <curand_kernel.h>
+
+#define N 100000000
+
+__global__ void addKernel(int* sum, curandState* state)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    curandState localState = state[tid];
+    int x = curand(&localState) % 10;
+    if (x > 5) {
+        atomicAdd(sum, x);
+    }
+    state[tid] = localState;
+}
+
+int main()
+{
+    int sum = 0;
+    int* d_sum;
+    cudaMalloc(&d_sum, sizeof(int));
+    cudaMemset(d_sum, 0, sizeof(int));
+    curandState* state;
+    cudaMalloc(&state, sizeof(curandState) * N);
+    srand(time(NULL));
+    clock_t start = clock();
+
+    addKernel<<<(N + 255) / 256, 256>>>(d_sum, state);
+    cudaMemcpy(&sum, d_sum, sizeof(int), cudaMemcpyDeviceToHost);
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Sum = %d\n"", sum);
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    cudaFree(d_sum);
+    cudaFree(state);
+
+    return 0;
+}
+",".LC1:
+        .string ""Sum = %d\n""
+.LC2:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 48
+        mov     DWORD PTR [rbp-4], 0
+        mov     edi, 0
+        call    time
+        mov     edi, eax
+        call    srand
+        call    clock
+        mov     QWORD PTR [rbp-16], rax
+        mov     DWORD PTR [rbp-8], 0
+        jmp     .L2
+.L4:
+        call    rand
+        mov     edx, eax
+        movsx   rax, edx
+        imul    rax, rax, 1717986919
+        shr     rax, 32
+        sar     eax, 2
+        mov     ecx, edx
+        sar     ecx, 31
+        sub     eax, ecx
+        mov     DWORD PTR [rbp-36], eax
+        mov     ecx, DWORD PTR [rbp-36]
+        mov     eax, ecx
+        sal     eax, 2
+        add     eax, ecx
+        add     eax, eax
+        sub     edx, eax
+        mov     DWORD PTR [rbp-36], edx
+        cmp     DWORD PTR [rbp-36], 5
+        jle     .L3
+        mov     eax, DWORD PTR [rbp-36]
+        add     DWORD PTR [rbp-4], eax
+.L3:
+        add     DWORD PTR [rbp-8], 1
+.L2:
+        cmp     DWORD PTR [rbp-8], 99999999
+        jle     .L4
+        call    clock
+        mov     QWORD PTR [rbp-24], rax
+        mov     rax, QWORD PTR [rbp-24]
+        sub     rax, QWORD PTR [rbp-16]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-32], xmm0
+        mov     eax, DWORD PTR [rbp-4]
+        mov     esi, eax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 0
+        call    printf
+        mov     rax, QWORD PTR [rbp-32]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC2
+        mov     eax, 1
+        call    printf
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".visible .entry addKernel(int*, curandStateXORWOW*)(
+        .param .u64 addKernel(int*, curandStateXORWOW*)_param_0,
+        .param .u64 addKernel(int*, curandStateXORWOW*)_param_1
+)
+{
+
+        ld.param.u64    %rd1, [addKernel(int*, curandStateXORWOW*)_param_0];
+        ld.param.u64    %rd2, [addKernel(int*, curandStateXORWOW*)_param_1];
+        cvta.to.global.u64      %rd3, %rd2;
+        mov.u32         %r10, %ntid.x;
+        mov.u32         %r11, %ctaid.x;
+        mov.u32         %r12, %tid.x;
+        mad.lo.s32      %r13, %r11, %r10, %r12;
+        mul.wide.s32    %rd4, %r13, 48;
+        add.s64         %rd5, %rd3, %rd4;
+        ld.global.v2.u32        {%r14, %r15}, [%rd5];
+        ld.global.v2.u32        {%r16, %r17}, [%rd5+8];
+        ld.global.v2.u32        {%r18, %r19}, [%rd5+16];
+        ld.global.v2.u32        {%r20, %r21}, [%rd5+24];
+        ld.global.f32   %f1, [%rd5+32];
+        ld.global.f64   %fd1, [%rd5+40];
+        shr.u32         %r22, %r15, 2;
+        xor.b32         %r23, %r22, %r15;
+        shl.b32         %r24, %r19, 4;
+        shl.b32         %r25, %r23, 1;
+        xor.b32         %r26, %r24, %r19;
+        xor.b32         %r27, %r26, %r23;
+        xor.b32         %r28, %r27, %r25;
+        add.s32         %r29, %r28, %r14;
+        add.s32         %r30, %r29, 362437;
+        mul.wide.u32    %rd6, %r30, -858993459;
+        shr.u64         %rd7, %rd6, 35;
+        cvt.u32.u64     %r31, %rd7;
+        mul.lo.s32      %r32, %r31, 10;
+        sub.s32         %r9, %r30, %r32;
+        setp.lt.u32     %p1, %r9, 6;
+        @%p1 bra        $L__BB0_2;
+
+        cvta.to.global.u64      %rd8, %rd1;
+        atom.global.add.u32     %r33, [%rd8], %r9;
+
+$L__BB0_2:
+        add.s32         %r38, %r14, 362437;
+        st.global.v2.u32        [%rd5], {%r38, %r16};
+        st.global.v2.u32        [%rd5+8], {%r17, %r18};
+        st.global.v2.u32        [%rd5+16], {%r19, %r28};
+        st.global.v2.u32        [%rd5+24], {%r20, %r21};
+        st.global.f32   [%rd5+32], %f1;
+        st.global.f64   [%rd5+40], %fd1;
+        ret;
+
+}
+        {
+
+        }",0.274089 seconds,0.040667 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define N 10000000
+
+int main()
+{
+    int a[N], b[N], c[N];
+    srand(time(NULL));
+    clock_t start = clock();
+
+    for (int i = 0; i < N; i++)
+    {
+        a[i] = rand() % 10;
+        b[i] = rand() % 10;
+        c[i] = a[i] + b[i];
+    }
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+#define N 10000000
+
+__global__ void addKernel(int* a, int* b, int* c)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < N)
+    {
+        c[tid] = a[tid] + b[tid];
+    }
+}
+
+int main()
+{
+    int a[N], b[N], c[N];
+    int* d_a, *d_b, *d_c;
+    cudaMalloc(&d_a, sizeof(int) * N);
+    cudaMalloc(&d_b, sizeof(int) * N);
+    cudaMalloc(&d_c, sizeof(int) * N);
+    srand(time(NULL));
+    clock_t start = clock();
+
+    for (int i = 0; i < N; i++)
+    {
+        a[i] = rand() % 10;
+        b[i] = rand() % 10;
+    }
+
+    cudaMemcpy(d_a, a, sizeof(int) * N, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, b, sizeof(int) * N, cudaMemcpyHostToDevice);
+    addKernel<<<(N + 255) / 256, 256>>>(d_a, d_b, d_c);
+    cudaMemcpy(c, d_c, sizeof(int) * N, cudaMemcpyDeviceToHost);
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    cudaFree(d_a);
+    cudaFree(d_b);
+    cudaFree(d_c);
+
+    return 0;
+}
+4\",".visible .entry addKernel(int*, curandStateXORWOW*)(
+        .param .u64 addKernel(int*, curandStateXORWOW*)_param_0,
+        .param .u64 addKernel(int*, curandStateXORWOW*)_param_1
+)
+{
+
+        ld.param.u64    %rd1, [addKernel(int*, curandStateXORWOW*)_param_0];
+        ld.param.u64    %rd2, [addKernel(int*, curandStateXORWOW*)_param_1];
+        cvta.to.global.u64      %rd3, %rd2;
+        mov.u32         %r10, %ntid.x;
+        mov.u32         %r11, %ctaid.x;
+        mov.u32         %r12, %tid.x;
+        mad.lo.s32      %r13, %r11, %r10, %r12;
+        mul.wide.s32    %rd4, %r13, 48;
+        add.s64         %rd5, %rd3, %rd4;
+        ld.global.v2.u32        {%r14, %r15}, [%rd5];
+        ld.global.v2.u32        {%r16, %r17}, [%rd5+8];
+        ld.global.v2.u32        {%r18, %r19}, [%rd5+16];
+        ld.global.v2.u32        {%r20, %r21}, [%rd5+24];
+        ld.global.f32   %f1, [%rd5+32];
+        ld.global.f64   %fd1, [%rd5+40];
+        shr.u32         %r22, %r15, 2;
+        xor.b32         %r23, %r22, %r15;
+        shl.b32         %r24, %r19, 4;
+        shl.b32         %r25, %r23, 1;
+        xor.b32         %r26, %r24, %r19;
+        xor.b32         %r27, %r26, %r23;
+        xor.b32         %r28, %r27, %r25;
+        add.s32         %r29, %r28, %r14;
+        add.s32         %r30, %r29, 362437;
+        mul.wide.u32    %rd6, %r30, -858993459;
+        shr.u64         %rd7, %rd6, 35;
+        cvt.u32.u64     %r31, %rd7;
+        mul.lo.s32      %r32, %r31, 10;
+        sub.s32         %r9, %r30, %r32;
+        setp.lt.u32     %p1, %r9, 6;
+        @%p1 bra        $L__BB0_2;
+
+        cvta.to.global.u64      %rd8, %rd1;
+        atom.global.add.u32     %r33, [%rd8], %r9;
+
+$L__BB0_2:
+        add.s32         %r38, %r14, 362437;
+        st.global.v2.u32        [%rd5], {%r38, %r16};
+        st.global.v2.u32        [%rd5+8], {%r17, %r18};
+        st.global.v2.u32        [%rd5+16], {%r19, %r28};
+        st.global.v2.u32        [%rd5+24], {%r20, %r21};
+        st.global.f32   [%rd5+32], %f1;
+        st.global.f64   [%rd5+40], %fd1;
+        ret;
+
+}
+        {
+
+        }",".visible .entry addKernel(int*, int*, int*)(
+        .param .u64 addKernel(int*, int*, int*)_param_0,
+        .param .u64 addKernel(int*, int*, int*)_param_1,
+        .param .u64 addKernel(int*, int*, int*)_param_2
+)
+{
+
+        ld.param.u64    %rd1, [addKernel(int*, int*, int*)_param_0];
+        ld.param.u64    %rd2, [addKernel(int*, int*, int*)_param_1];
+        ld.param.u64    %rd3, [addKernel(int*, int*, int*)_param_2];
+        mov.u32         %r2, %ctaid.x;
+        mov.u32         %r3, %ntid.x;
+        mov.u32         %r4, %tid.x;
+        mad.lo.s32      %r1, %r2, %r3, %r4;
+        setp.gt.s32     %p1, %r1, 9999999;
+        @%p1 bra        $L__BB0_2;
+
+        cvta.to.global.u64      %rd4, %rd1;
+        mul.wide.s32    %rd5, %r1, 4;
+        add.s64         %rd6, %rd4, %rd5;
+        cvta.to.global.u64      %rd7, %rd2;
+        add.s64         %rd8, %rd7, %rd5;
+        ld.global.u32   %r5, [%rd8];
+        ld.global.u32   %r6, [%rd6];
+        add.s32         %r7, %r5, %r6;
+        cvta.to.global.u64      %rd9, %rd3;
+        add.s64         %rd10, %rd9, %rd5;
+        st.global.u32   [%rd10], %r7;
+
+$L__BB0_2:
+        ret;
+
+}
+",0.274089 seconds,0.449691 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+void bubbleSort(int* arr, int size)
+{
+    for (int i = 0; i < size - 1; i++)
+    {
+        for (int j = 0; j < size - i - 1; j++)
+        {
+            if (arr[j] > arr[j + 1])
+            {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+int main()
+{
+    const int N = 100000;
+    int arr[N];
+    srand(time(NULL));
+
+    for (int i = 0; i < N; i++)
+    {
+        arr[i] = rand();
+    }
+
+    clock_t start = clock();
+    bubbleSort(arr, N);
+    clock_t end = clock();
+
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+__global__ void bubbleSortKernel(int* arr, int size)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < size - 1)
+    {
+        for (int i = 0; i < size - tid - 1; i++)
+        {
+            if (arr[i] > arr[i + 1])
+            {
+                int temp = arr[i];
+                arr[i] = arr[i + 1];
+                arr[i + 1] = temp;
+            }
+        }
+    }
+}
+
+void bubbleSortGPU(int* arr, int size)
+{
+    int* d_arr;
+    cudaMalloc(&d_arr, size * sizeof(int));
+    cudaMemcpy(d_arr, arr, size * sizeof(int), cudaMemcpyHostToDevice);
+
+    bubbleSortKernel<<<(size + 255) / 256, 256>>>(d_arr, size);
+
+    cudaMemcpy(arr, d_arr, size * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaFree(d_arr);
+}
+
+int main()
+{
+    const int N = 100000;
+    int arr[N];
+    srand(time(NULL));
+
+    for (int i = 0; i < N; i++)
+    {
+        arr[i] = rand();
+    }
+
+    clock_t start = clock();
+    bubbleSortGPU(arr, N);
+    clock_t end = clock();
+
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","33.33sbubbleSort(int*, int):
+        push    rbp
+        mov     rbp, rsp
+        mov     QWORD PTR [rbp-24], rdi
+        mov     DWORD PTR [rbp-28], esi
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L2
+.L6:
+        mov     DWORD PTR [rbp-8], 0
+        jmp     .L3
+.L5:
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        mov     edx, DWORD PTR [rax]
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        add     rax, 1
+        lea     rcx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rcx
+        mov     eax, DWORD PTR [rax]
+        cmp     edx, eax
+        jle     .L4
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        mov     eax, DWORD PTR [rax]
+        mov     DWORD PTR [rbp-12], eax
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        add     rax, 1
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        mov     edx, DWORD PTR [rbp-8]
+        movsx   rdx, edx
+        lea     rcx, [0+rdx*4]
+        mov     rdx, QWORD PTR [rbp-24]
+        add     rdx, rcx
+        mov     eax, DWORD PTR [rax]
+        mov     DWORD PTR [rdx], eax
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        add     rax, 1
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rdx, rax
+        mov     eax, DWORD PTR [rbp-12]
+        mov     DWORD PTR [rdx], eax
+.L4:
+        add     DWORD PTR [rbp-8], 1
+.L3:
+        mov     eax, DWORD PTR [rbp-28]
+        sub     eax, DWORD PTR [rbp-4]
+        sub     eax, 1
+        cmp     DWORD PTR [rbp-8], eax
+        jl      .L5
+        add     DWORD PTR [rbp-4], 1
+.L2:
+        mov     eax, DWORD PTR [rbp-28]
+        sub     eax, 1
+        cmp     DWORD PTR [rbp-4], eax
+        jl      .L6
+        nop
+        nop
+        pop     rbp
+        ret
+.LC1:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 40032
+        mov     DWORD PTR [rbp-8], 10000
+        mov     edi, 0
+        call    time
+        mov     edi, eax
+        call    srand
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L8
+.L9:
+        call    rand
+        mov     edx, DWORD PTR [rbp-4]
+        movsx   rdx, edx
+        mov     DWORD PTR [rbp-40032+rdx*4], eax
+        add     DWORD PTR [rbp-4], 1
+.L8:
+        cmp     DWORD PTR [rbp-4], 9999
+        jle     .L9
+        call    clock
+        mov     QWORD PTR [rbp-16], rax
+        lea     rax, [rbp-40032]
+        mov     esi, 10000
+        mov     rdi, rax
+        call    bubbleSort(int*, int)
+        call    clock
+        mov     QWORD PTR [rbp-24], rax
+        mov     rax, QWORD PTR [rbp-24]
+        sub     rax, QWORD PTR [rbp-16]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-32], xmm0
+        mov     rax, QWORD PTR [rbp-32]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 1
+        call    printf
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".visible .entry bubbleSortKernel(int*, int)(
+        .param .u64 bubbleSortKernel(int*, int)_param_0,
+        .param .u32 bubbleSortKernel(int*, int)_param_1
+)
+{
+
+        ld.param.u64    %rd8, [bubbleSortKernel(int*, int)_param_0];
+        ld.param.u32    %r29, [bubbleSortKernel(int*, int)_param_1];
+        cvta.to.global.u64      %rd1, %rd8;
+        mov.u32         %r30, %ntid.x;
+        mov.u32         %r31, %ctaid.x;
+        mul.lo.s32      %r1, %r31, %r30;
+        mov.u32         %r2, %tid.x;
+        add.s32         %r3, %r1, %r2;
+        add.s32         %r32, %r29, -1;
+        setp.ge.s32     %p1, %r3, %r32;
+        @%p1 bra        $L__BB0_18;
+
+        not.b32         %r33, %r3;
+        add.s32         %r4, %r33, %r29;
+        setp.lt.s32     %p2, %r4, 1;
+        @%p2 bra        $L__BB0_18;
+
+        add.s32         %r35, %r29, -2;
+        sub.s32         %r36, %r35, %r3;
+        and.b32         %r49, %r4, 3;
+        setp.lt.u32     %p3, %r36, 3;
+        mov.u32         %r47, 0;
+        @%p3 bra        $L__BB0_13;
+
+        ld.global.u32   %r41, [%rd1];
+        sub.s32         %r38, %r29, %r1;
+        sub.s32         %r39, %r38, %r49;
+        sub.s32         %r40, %r39, %r2;
+        mov.u64         %rd11, %rd1;
+
+$L__BB0_4:
+        ld.global.u32   %r43, [%rd11+4];
+        setp.le.s32     %p4, %r41, %r43;
+        @%p4 bra        $L__BB0_6;
+
+        st.global.u32   [%rd11], %r43;
+        st.global.u32   [%rd11+4], %r41;
+        mov.u32         %r43, %r41;
+
+$L__BB0_6:
+        ld.global.u32   %r44, [%rd11+8];
+        setp.le.s32     %p5, %r43, %r44;
+        @%p5 bra        $L__BB0_8;
+
+        st.global.u32   [%rd11+4], %r44;
+        st.global.u32   [%rd11+8], %r43;
+        mov.u32         %r44, %r43;
+
+$L__BB0_8:
+        ld.global.u32   %r45, [%rd11+12];
+        setp.le.s32     %p6, %r44, %r45;
+        @%p6 bra        $L__BB0_10;
+
+        st.global.u32   [%rd11+8], %r45;
+        st.global.u32   [%rd11+12], %r44;
+        mov.u32         %r45, %r44;
+
+$L__BB0_10:
+        add.s32         %r47, %r47, 4;
+        ld.global.u32   %r41, [%rd11+16];
+        setp.le.s32     %p7, %r45, %r41;
+        @%p7 bra        $L__BB0_12;
+
+        st.global.u32   [%rd11+12], %r41;
+        st.global.u32   [%rd11+16], %r45;
+        mov.u32         %r41, %r45;
+
+$L__BB0_12:
+        add.s32         %r40, %r40, -4;
+        setp.ne.s32     %p8, %r40, 1;
+        add.s64         %rd11, %rd11, 16;
+        @%p8 bra        $L__BB0_4;
+
+$L__BB0_13:
+        setp.eq.s32     %p9, %r49, 0;
+        @%p9 bra        $L__BB0_18;
+
+        mul.wide.s32    %rd9, %r47, 4;
+        add.s64         %rd10, %rd1, %rd9;
+        ld.global.u32   %r48, [%rd10];
+        add.s64         %rd12, %rd10, 4;
+
+$L__BB0_15:
+        ld.global.u32   %r50, [%rd12];
+        setp.le.s32     %p10, %r48, %r50;
+        @%p10 bra       $L__BB0_17;
+
+        ld.global.u32   %r26, [%rd12+-4];
+        st.global.u32   [%rd12+-4], %r50;
+        st.global.u32   [%rd12], %r26;
+        mov.u32         %r50, %r26;
+
+$L__BB0_17:
+        add.s64         %rd12, %rd12, 4;
+        add.s32         %r49, %r49, -1;
+        setp.ne.s32     %p11, %r49, 0;
+        mov.u32         %r48, %r50;
+        @%p11 bra       $L__BB0_15;
+
+$L__BB0_18:
+        ret;
+
+}
+",0.445076 seconds,2.110642 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+__global__ void bubbleSortKernel(int* arr, int size)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < size - 1)
+    {
+        for (int i = 0; i < size - tid - 1; i++)
+        {
+            if (arr[i] > arr[i + 1])
+            {
+                int temp = arr[i];
+                arr[i] = arr[i + 1];
+                arr[i + 1] = temp;
+            }
+        }
+    }
+}
+
+void bubbleSortGPU(int* arr, int size)
+{
+    int* d_arr;
+    cudaMalloc(&d_arr, size * sizeof(int));
+    cudaMemcpy(d_arr, arr, size * sizeof(int), cudaMemcpyHostToDevice);
+
+    bubbleSortKernel<<<(size + 255) / 256, 256>>>(d_arr, size);
+
+    cudaMemcpy(arr, d_arr, size * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaFree(d_arr);
+}
+
+int main()
+{
+    const int N = 100000;
+    int arr[N];
+    srand(time(NULL));
+
+    for (int i = 0; i < N; i++)
+    {
+        arr[i] = rand();
+    }
+
+    clock_t start = clock();
+    bubbleSortGPU(arr, N);
+    clock_t end = clock();
+
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+__global__ void searchKernel(int* arr, int target, int* idx, int N)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < N)
+    {
+        if (arr[tid] == target)
+        {
+            atomicMin(idx, tid);
+        }
+    }
+}
+
+int main()
+{
+    const int N = 100000000;
+    int* arr = (int*) malloc(N * sizeof(int));
+    srand(time(NULL));
+    for (int i = 0; i < N; i++)
+    {
+        arr[i] = rand() % 100;
+    }
+
+    int target = rand() % 100;
+    int idx = -1;
+    int* d_arr;
+    int* d_idx;
+    cudaMalloc(&d_arr, N * sizeof(int));
+    cudaMalloc(&d_idx, sizeof(int));
+    cudaMemset(d_idx, 0x7f, sizeof(int));
+    cudaMemcpy(d_arr, arr, N * sizeof(int), cudaMemcpyHostToDevice);
+    clock_t start = clock();
+
+    searchKernel<<<(N + 255) / 256, 256>>>(d_arr, target, d_idx, N);
+    cudaMemcpy(&idx, d_idx, sizeof(int), cudaMemcpyDeviceToHost);
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Target = %d\n"", target);
+    printf(""Index = %d\n"", idx);
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    cudaFree(d_arr);
+    cudaFree(d_idx);
+    free(arr);
+
+    return 0;
+}
+",".LC1:
+        .string ""Sum = %d\n""
+.LC2:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 48
+        mov     DWORD PTR [rbp-16], 10000000
+        mov     edi, 40000000
+        call    malloc
+        mov     QWORD PTR [rbp-24], rax
+        mov     DWORD PTR [rbp-4], 0
+        mov     edi, 0
+        call    time
+        mov     edi, eax
+        call    srand
+        mov     DWORD PTR [rbp-8], 0
+        jmp     .L2
+.L3:
+        call    rand
+        mov     ecx, eax
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        lea     rsi, [rdx+rax]
+        movsx   rax, ecx
+        imul    rax, rax, 1717986919
+        shr     rax, 32
+        mov     edx, eax
+        sar     edx, 2
+        mov     eax, ecx
+        sar     eax, 31
+        sub     edx, eax
+        mov     eax, edx
+        sal     eax, 2
+        add     eax, edx
+        add     eax, eax
+        sub     ecx, eax
+        mov     edx, ecx
+        mov     DWORD PTR [rsi], edx
+        add     DWORD PTR [rbp-8], 1
+.L2:
+        cmp     DWORD PTR [rbp-8], 9999999
+        jle     .L3
+        call    clock
+        mov     QWORD PTR [rbp-32], rax
+        mov     DWORD PTR [rbp-12], 0
+        jmp     .L4
+.L5:
+        mov     eax, DWORD PTR [rbp-12]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        mov     eax, DWORD PTR [rax]
+        add     DWORD PTR [rbp-4], eax
+        add     DWORD PTR [rbp-12], 1
+.L4:
+        cmp     DWORD PTR [rbp-12], 9999999
+        jle     .L5
+        call    clock
+        mov     QWORD PTR [rbp-40], rax
+        mov     rax, QWORD PTR [rbp-40]
+        sub     rax, QWORD PTR [rbp-32]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-48], xmm0
+        mov     eax, DWORD PTR [rbp-4]
+        mov     esi, eax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 0
+        call    printf
+        mov     rax, QWORD PTR [rbp-48]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC2
+        mov     eax, 1
+        call    printf
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rdi, rax
+        call    free
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".visible .entry sumKernel(int*, int*, int)(
+        .param .u64 sumKernel(int*, int*, int)_param_0,
+        .param .u64 sumKernel(int*, int*, int)_param_1,
+        .param .u32 sumKernel(int*, int*, int)_param_2
+)
+{
+
+        ld.param.u64    %rd1, [sumKernel(int*, int*, int)_param_0];
+        ld.param.u64    %rd2, [sumKernel(int*, int*, int)_param_1];
+        ld.param.u32    %r2, [sumKernel(int*, int*, int)_param_2];
+        mov.u32         %r3, %ctaid.x;
+        mov.u32         %r4, %ntid.x;
+        mov.u32         %r5, %tid.x;
+        mad.lo.s32      %r1, %r3, %r4, %r5;
+        setp.ge.s32     %p1, %r1, %r2;
+        @%p1 bra        $L__BB0_2;
+
+        cvta.to.global.u64      %rd3, %rd1;
+        mul.wide.s32    %rd4, %r1, 4;
+        add.s64         %rd5, %rd3, %rd4;
+        ld.global.u32   %r6, [%rd5];
+        cvta.to.global.u64      %rd6, %rd2;
+        atom.global.add.u32     %r7, [%rd6], %r6;
+
+$L__BB0_2:
+        ret;
+
+}
+        {
+
+        }",0.022509 seconds,0.000651 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+int main()
+{
+    const int N = 100000000;
+    int* a = (int*)malloc(N * sizeof(int));
+    int sum = 0;
+    srand(time(NULL));
+
+    for (int i = 0; i < N; i++)
+    {
+        a[i] = rand() % 10;
+    }
+
+    clock_t start = clock();
+
+    for (int i = 0; i < N; i++)
+    {
+        sum += a[i];
+    }
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Sum = %d\n"", sum);
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    free(a);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+__global__ void sumKernel(int* a, int* sum, int N)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < N)
+    {
+        atomicAdd(sum, a[tid]);
+    }
+}
+
+int main()
+{
+    const int N = 100000000;
+    int* a = (int*)malloc(N * sizeof(int));
+    int sum = 0;
+    int* d_a;
+    int* d_sum;
+    cudaMalloc(&d_a, N * sizeof(int));
+    cudaMalloc(&d_sum, sizeof(int));
+    cudaMemset(d_sum, 0, sizeof(int));
+    srand(time(NULL));
+
+    for (int i = 0; i < N; i++)
+    {
+        a[i] = rand() % 10;
+    }
+
+    cudaMemcpy(d_a, a, N * sizeof(int), cudaMemcpyHostToDevice);
+    clock_t start = clock();
+
+    sumKernel<<<(N + 255) / 256, 256>>>(d_a, d_sum, N);
+    cudaMemcpy(&sum, d_sum, sizeof(int), cudaMemcpyDeviceToHost);
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Sum = %d\n"", sum);
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    free(a);
+    cudaFree(d_a);
+    cudaFree(d_sum);
+
+    return 0;
+}
+",".LC1:
+        .string ""Sum = %d\n""
+.LC2:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 48
+        mov     DWORD PTR [rbp-16], 10000000
+        mov     edi, 40000000
+        call    malloc
+        mov     QWORD PTR [rbp-24], rax
+        mov     DWORD PTR [rbp-4], 0
+        mov     edi, 0
+        call    time
+        mov     edi, eax
+        call    srand
+        mov     DWORD PTR [rbp-8], 0
+        jmp     .L2
+.L3:
+        call    rand
+        mov     ecx, eax
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        lea     rsi, [rdx+rax]
+        movsx   rax, ecx
+        imul    rax, rax, 1717986919
+        shr     rax, 32
+        mov     edx, eax
+        sar     edx, 2
+        mov     eax, ecx
+        sar     eax, 31
+        sub     edx, eax
+        mov     eax, edx
+        sal     eax, 2
+        add     eax, edx
+        add     eax, eax
+        sub     ecx, eax
+        mov     edx, ecx
+        mov     DWORD PTR [rsi], edx
+        add     DWORD PTR [rbp-8], 1
+.L2:
+        cmp     DWORD PTR [rbp-8], 9999999
+        jle     .L3
+        call    clock
+        mov     QWORD PTR [rbp-32], rax
+        mov     DWORD PTR [rbp-12], 0
+        jmp     .L4
+.L5:
+        mov     eax, DWORD PTR [rbp-12]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        mov     eax, DWORD PTR [rax]
+        add     DWORD PTR [rbp-4], eax
+        add     DWORD PTR [rbp-12], 1
+.L4:
+        cmp     DWORD PTR [rbp-12], 9999999
+        jle     .L5
+        call    clock
+        mov     QWORD PTR [rbp-40], rax
+        mov     rax, QWORD PTR [rbp-40]
+        sub     rax, QWORD PTR [rbp-32]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-48], xmm0
+        mov     eax, DWORD PTR [rbp-4]
+        mov     esi, eax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 0
+        call    printf
+        mov     rax, QWORD PTR [rbp-48]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC2
+        mov     eax, 1
+        call    printf
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rdi, rax
+        call    free
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".visible .entry sumKernel(int*, int*, int)(
+        .param .u64 sumKernel(int*, int*, int)_param_0,
+        .param .u64 sumKernel(int*, int*, int)_param_1,
+        .param .u32 sumKernel(int*, int*, int)_param_2
+)
+{
+
+        ld.param.u64    %rd1, [sumKernel(int*, int*, int)_param_0];
+        ld.param.u64    %rd2, [sumKernel(int*, int*, int)_param_1];
+        ld.param.u32    %r2, [sumKernel(int*, int*, int)_param_2];
+        mov.u32         %r3, %ctaid.x;
+        mov.u32         %r4, %ntid.x;
+        mov.u32         %r5, %tid.x;
+        mad.lo.s32      %r1, %r3, %r4, %r5;
+        setp.ge.s32     %p1, %r1, %r2;
+        @%p1 bra        $L__BB0_2;
+
+        cvta.to.global.u64      %rd3, %rd1;
+        mul.wide.s32    %rd4, %r1, 4;
+        add.s64         %rd5, %rd3, %rd4;
+        ld.global.u32   %r6, [%rd5];
+        cvta.to.global.u64      %rd6, %rd2;
+        atom.global.add.u32     %r7, [%rd6], %r6;
+
+$L__BB0_2:
+        ret;
+
+}
+        {
+
+        }",0.022509 seconds,0.000651 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+struct Node {
+    int value;
+    struct Node *left;
+    struct Node *right;
+};
+
+struct Node* createNode(int value) {
+    struct Node* newNode = (struct Node*) malloc(sizeof(struct Node));
+    newNode->value = value;
+    newNode->left = NULL;
+    newNode->right = NULL;
+    return newNode;
+}
+
+void traverseTree(struct Node* node) {
+    if (node == NULL) {
+        return;
+    }
+    traverseTree(node->left);
+    printf(""%d "", node->value);
+    traverseTree(node->right);
+}
+
+int main() {
+    struct Node* root = createNode(4);
+    root->left = createNode(2);
+    root->left->left = createNode(1);
+    root->left->right = createNode(3);
+    root->right = createNode(6);
+    root->right->left = createNode(5);
+    root->right->right = createNode(7);
+
+    clock_t start = clock();
+    traverseTree(root);
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""\nElapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+#define N 7
+
+struct Node {
+    int value;
+    int left;
+    int right;
+};
+
+__device__ void traverseNode(struct Node* nodes, int index) {
+    if (index == -1) {
+        return;
+    }
+    traverseNode(nodes, nodes[index].left);
+    printf(""%d "", nodes[index].value);
+    traverseNode(nodes, nodes[index].right);
+}
+
+__global__ void traverseTree(struct Node* nodes) {
+    traverseNode(nodes, 0);
+}
+
+int main() {
+    struct Node h_nodes[N] = {
+        {4, 1, 2},
+        {2, 3, 4},
+        {6, 5, 6},
+        {1, -1, -1},
+        {3, -1, -1},
+        {5, -1, -1},
+        {7, -1, -1}
+    };
+    struct Node* d_nodes;
+    cudaMalloc(&d_nodes, N * sizeof(struct Node));
+    cudaMemcpy(d_nodes, h_nodes, N * sizeof(struct Node), cudaMemcpyHostToDevice);
+
+    clock_t start = clock();
+    traverseTree<<<1, 1>>>(d_nodes);
+    cudaDeviceSynchronize();
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""\nElapsed time = %f seconds\n"", elapsed_time);
+
+    cudaFree(d_nodes);
+
+    return 0;
+}
+","createNode(int):
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 32
+        mov     DWORD PTR [rbp-20], edi
+        mov     edi, 24
+        call    malloc
+        mov     QWORD PTR [rbp-8], rax
+        mov     rax, QWORD PTR [rbp-8]
+        mov     edx, DWORD PTR [rbp-20]
+        mov     DWORD PTR [rax], edx
+        mov     rax, QWORD PTR [rbp-8]
+        mov     QWORD PTR [rax+8], 0
+        mov     rax, QWORD PTR [rbp-8]
+        mov     QWORD PTR [rax+16], 0
+        mov     rax, QWORD PTR [rbp-8]
+        leave
+        ret
+.LC0:
+        .string ""%d ""
+traverseTree(Node*):
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 16
+        mov     QWORD PTR [rbp-8], rdi
+        cmp     QWORD PTR [rbp-8], 0
+        je      .L6
+        mov     rax, QWORD PTR [rbp-8]
+        mov     rax, QWORD PTR [rax+8]
+        mov     rdi, rax
+        call    traverseTree(Node*)
+        mov     rax, QWORD PTR [rbp-8]
+        mov     eax, DWORD PTR [rax]
+        mov     esi, eax
+        mov     edi, OFFSET FLAT:.LC0
+        mov     eax, 0
+        call    printf
+        mov     rax, QWORD PTR [rbp-8]
+        mov     rax, QWORD PTR [rax+16]
+        mov     rdi, rax
+        call    traverseTree(Node*)
+        jmp     .L3
+.L6:
+        nop
+.L3:
+        leave
+        ret
+.LC2:
+        .string ""\nElapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        push    rbx
+        sub     rsp, 40
+        mov     edi, 4
+        call    createNode(int)
+        mov     QWORD PTR [rbp-24], rax
+        mov     edi, 2
+        call    createNode(int)
+        mov     rdx, QWORD PTR [rbp-24]
+        mov     QWORD PTR [rdx+8], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rbx, QWORD PTR [rax+8]
+        mov     edi, 1
+        call    createNode(int)
+        mov     QWORD PTR [rbx+8], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rbx, QWORD PTR [rax+8]
+        mov     edi, 3
+        call    createNode(int)
+        mov     QWORD PTR [rbx+16], rax
+        mov     edi, 6
+        call    createNode(int)
+        mov     rdx, QWORD PTR [rbp-24]
+        mov     QWORD PTR [rdx+16], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rbx, QWORD PTR [rax+16]
+        mov     edi, 5
+        call    createNode(int)
+        mov     QWORD PTR [rbx+8], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rbx, QWORD PTR [rax+16]
+        mov     edi, 7
+        call    createNode(int)
+        mov     QWORD PTR [rbx+16], rax
+        call    clock
+        mov     QWORD PTR [rbp-32], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rdi, rax
+        call    traverseTree(Node*)
+        call    clock
+        mov     QWORD PTR [rbp-40], rax
+        mov     rax, QWORD PTR [rbp-40]
+        sub     rax, QWORD PTR [rbp-32]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC1[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-48], xmm0
+        mov     rax, QWORD PTR [rbp-48]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC2
+        mov     eax, 1
+        call    printf
+        mov     eax, 0
+        mov     rbx, QWORD PTR [rbp-8]
+        leave
+        ret
+.LC1:
+        .long   0
+        .long   1093567616","(
+)
+
+.func traverseNode(Node*, int)(
+        .param .b64 traverseNode(Node*, int)_param_0,
+        .param .b32 traverseNode(Node*, int)_param_1
+)
+{
+
+        mov.u64         %SPL, __local_depot0;
+        cvta.local.u64  %SP, %SPL;
+        ld.param.u64    %rd1, [traverseNode(Node*, int)_param_0];
+        ld.param.u32    %r1, [traverseNode(Node*, int)_param_1];
+        setp.eq.s32     %p1, %r1, -1;
+        @%p1 bra        $L__BB0_2;
+
+        add.u64         %rd2, %SP, 0;
+        add.u64         %rd3, %SPL, 0;
+        cvta.to.global.u64      %rd4, %rd1;
+        mul.wide.s32    %rd5, %r1, 12;
+        add.s64         %rd6, %rd4, %rd5;
+        ld.global.u32   %r2, [%rd6+4];
+        { // callseq 0, 0
+        st.param.b64    [param0+0], %rd1;
+        st.param.b32    [param1+0], %r2;
+        call.uni 
+        traverseNode(Node*, int), 
+        (
+        param0, 
+        param1
+        );
+        } // callseq 0
+        ld.global.u32   %r3, [%rd6];
+        st.local.u32    [%rd3], %r3;
+        mov.u64         %rd7, $str;
+        cvta.global.u64         %rd8, %rd7;
+        { // callseq 1, 0
+        st.param.b64    [param0+0], %rd8;
+        st.param.b64    [param1+0], %rd2;
+        call.uni (retval0), 
+        vprintf, 
+        (
+        param0, 
+        param1
+        );
+        ld.param.b32    %r4, [retval0+0];
+        } // callseq 1
+        ld.global.u32   %r5, [%rd6+8];
+        { // callseq 2, 0
+        st.param.b64    [param0+0], %rd1;
+        st.param.b32    [param1+0], %r5;
+        call.uni 
+        traverseNode(Node*, int), 
+        (
+        param0, 
+        param1
+        );
+        } // callseq 2
+
+$L__BB0_2:
+        ret;
+
+}
+.visible .entry traverseTree(Node*)(
+        .param .u64 traverseTree(Node*)_param_0
+)
+{
+
+        ld.param.u64    %rd1, [traverseTree(Node*)_param_0];
+        mov.u32         %r1, 0;
+        { // callseq 3, 0
+        st.param.b64    [param0+0], %rd1;
+        st.param.b32    [param1+0], %r1;
+        call.uni 
+        traverseNode(Node*, int), 
+        (
+        param0, 
+        param1
+        );
+        } // callseq 3
+        ret;
+
+}
+",0.000018 seconds,0.000438 seconds
+" #include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
+
+#define N 7
+
+struct Node {
+    int value;
+    int num_edges;
+    struct Node **edges;
+    bool visited;
+};
+
+struct Node* createNode(int value) {
+    struct Node* newNode = (struct Node*) malloc(sizeof(struct Node));
+    newNode->value = value;
+    newNode->num_edges = 0;
+    newNode->edges = NULL;
+    newNode->visited = false;
+    return newNode;
+}
+
+void addEdge(struct Node* node1, struct Node* node2) {
+    node1->num_edges++;
+    node1->edges = (struct Node**) realloc(node1->edges, node1->num_edges * sizeof(struct Node*));
+    node1->edges[node1->num_edges - 1] = node2;
+    node2->num_edges++;
+    node2->edges = (struct Node**) realloc(node2->edges, node2->num_edges * sizeof(struct Node*));
+    node2->edges[node2->num_edges - 1] = node1;
+}
+
+void findEdgeCover(struct Node* node) {
+    if (node == NULL) {
+        return;
+    }
+    node->visited = true;
+    for (int i = 0; i < node->num_edges; i++) {
+        if (!node->edges[i]->visited) {
+            findEdgeCover(node->edges[i]);
+        }
+    }
+}
+
+int main() {
+    struct Node* nodes[N];
+    for (int i = 0; i < N; i++) {
+        nodes[i] = createNode(i + 1);
+    }
+    addEdge(nodes[0], nodes[1]);
+    addEdge(nodes[0], nodes[2]);
+    addEdge(nodes[1], nodes[3]);
+    addEdge(nodes[1], nodes[4]);
+    addEdge(nodes[2], nodes[5]);
+    addEdge(nodes[2], nodes[6]);
+
+    clock_t start = clock();
+    findEdgeCover(nodes[0]);
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
+
+#define N 7
+#define BLOCK_SIZE 1024
+
+struct Node {
+    int value;
+    int num_edges;
+    int* edges;
+    bool visited;
+};
+
+__global__ void findEdgeCover(struct Node* nodes, int num_nodes) {
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < num_nodes && !nodes[tid].visited) {
+        nodes[tid].visited = true;
+        for (int i = 0; i < nodes[tid].num_edges; i++) {
+            int neighbor_id = nodes[tid].edges[i];
+            if (!nodes[neighbor_id].visited) {
+                nodes[neighbor_id].visited = true;
+            }
+        }
+    }
+}
+
+int main() {
+    struct Node* nodes;
+    cudaMallocManaged(&nodes, N * sizeof(struct Node));
+    for (int i = 0; i < N; i++) {
+        nodes[i].value = i + 1;
+        nodes[i].num_edges = 0;
+        nodes[i].edges = NULL;
+        nodes[i].visited = false;
+    }
+    int edges[N][2] = {{0, 1}, {0, 2}, {1, 3}, {1, 4}, {2, 5}, {2, 6}};
+    for (int i = 0; i < 6; i++) {
+        int node1_id = edges[i][0];
+        int node2_id = edges[i][1];
+        nodes[node1_id].num_edges++;
+        nodes[node2_id].num_edges++;
+    }
+    for (int i = 0; i < N; i++) {
+        cudaMallocManaged(&nodes[i].edges, nodes[i].num_edges * sizeof(int));
+    }
+    for (int i = 0; i < 6; i++) {
+        int node1_id = edges[i][0];
+        int node2_id = edges[i][1];
+        int j = 0;
+        while (nodes[node1_id].edges[j] != 0) {
+            j++;
+        }
+        nodes[node1_id].edges[j] = node2_id;
+        j = 0;
+        while (nodes[node2_id].edges[j] != 0) {
+            j++;
+        }
+        nodes[node2_id].edges[j] = node1_id;
+    }
+
+    clock_t start = clock();
+    int num_blocks = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    findEdgeCover<<<num_blocks, BLOCK_SIZE>>>(nodes, N);
+    cudaDeviceSynchronize();
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    cudaFree(nodes);
+    return 0;
+}
+","createNode(int):
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 32
+        mov     DWORD PTR [rbp-20], edi
+        mov     edi, 24
+        call    malloc
+        mov     QWORD PTR [rbp-8], rax
+        mov     rax, QWORD PTR [rbp-8]
+        mov     edx, DWORD PTR [rbp-20]
+        mov     DWORD PTR [rax], edx
+        mov     rax, QWORD PTR [rbp-8]
+        mov     DWORD PTR [rax+4], 0
+        mov     rax, QWORD PTR [rbp-8]
+        mov     QWORD PTR [rax+8], 0
+        mov     rax, QWORD PTR [rbp-8]
+        mov     BYTE PTR [rax+16], 0
+        mov     rax, QWORD PTR [rbp-8]
+        leave
+        ret
+addEdge(Node*, Node*):
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 16
+        mov     QWORD PTR [rbp-8], rdi
+        mov     QWORD PTR [rbp-16], rsi
+        mov     rax, QWORD PTR [rbp-8]
+        mov     eax, DWORD PTR [rax+4]
+        lea     edx, [rax+1]
+        mov     rax, QWORD PTR [rbp-8]
+        mov     DWORD PTR [rax+4], edx
+        mov     rax, QWORD PTR [rbp-8]
+        mov     eax, DWORD PTR [rax+4]
+        cdqe
+        lea     rdx, [0+rax*8]
+        mov     rax, QWORD PTR [rbp-8]
+        mov     rax, QWORD PTR [rax+8]
+        mov     rsi, rdx
+        mov     rdi, rax
+        call    realloc
+        mov     rdx, QWORD PTR [rbp-8]
+        mov     QWORD PTR [rdx+8], rax
+        mov     rax, QWORD PTR [rbp-8]
+        mov     rdx, QWORD PTR [rax+8]
+        mov     rax, QWORD PTR [rbp-8]
+        mov     eax, DWORD PTR [rax+4]
+        cdqe
+        sal     rax, 3
+        sub     rax, 8
+        add     rdx, rax
+        mov     rax, QWORD PTR [rbp-16]
+        mov     QWORD PTR [rdx], rax
+        mov     rax, QWORD PTR [rbp-16]
+        mov     eax, DWORD PTR [rax+4]
+        lea     edx, [rax+1]
+        mov     rax, QWORD PTR [rbp-16]
+        mov     DWORD PTR [rax+4], edx
+        mov     rax, QWORD PTR [rbp-16]
+        mov     eax, DWORD PTR [rax+4]
+        cdqe
+        lea     rdx, [0+rax*8]
+        mov     rax, QWORD PTR [rbp-16]
+        mov     rax, QWORD PTR [rax+8]
+        mov     rsi, rdx
+        mov     rdi, rax
+        call    realloc
+        mov     rdx, QWORD PTR [rbp-16]
+        mov     QWORD PTR [rdx+8], rax
+        mov     rax, QWORD PTR [rbp-16]
+        mov     rdx, QWORD PTR [rax+8]
+        mov     rax, QWORD PTR [rbp-16]
+        mov     eax, DWORD PTR [rax+4]
+        cdqe
+        sal     rax, 3
+        sub     rax, 8
+        add     rdx, rax
+        mov     rax, QWORD PTR [rbp-8]
+        mov     QWORD PTR [rdx], rax
+        nop
+        leave
+        ret
+findEdgeCover(Node*):
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 32
+        mov     QWORD PTR [rbp-24], rdi
+        cmp     QWORD PTR [rbp-24], 0
+        je      .L10
+        mov     rax, QWORD PTR [rbp-24]
+        mov     BYTE PTR [rax+16], 1
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L7
+.L9:
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rax, QWORD PTR [rax+8]
+        mov     edx, DWORD PTR [rbp-4]
+        movsx   rdx, edx
+        sal     rdx, 3
+        add     rax, rdx
+        mov     rax, QWORD PTR [rax]
+        movzx   eax, BYTE PTR [rax+16]
+        xor     eax, 1
+        test    al, al
+        je      .L8
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rax, QWORD PTR [rax+8]
+        mov     edx, DWORD PTR [rbp-4]
+        movsx   rdx, edx
+        sal     rdx, 3
+        add     rax, rdx
+        mov     rax, QWORD PTR [rax]
+        mov     rdi, rax
+        call    findEdgeCover(Node*)
+.L8:
+        add     DWORD PTR [rbp-4], 1
+.L7:
+        mov     rax, QWORD PTR [rbp-24]
+        mov     eax, DWORD PTR [rax+4]
+        cmp     DWORD PTR [rbp-4], eax
+        jl      .L9
+        jmp     .L4
+.L10:
+        nop
+.L4:
+        leave
+        ret
+.LC1:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 96
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L12
+.L13:
+        mov     eax, DWORD PTR [rbp-4]
+        add     eax, 1
+        mov     edi, eax
+        call    createNode(int)
+        mov     edx, DWORD PTR [rbp-4]
+        movsx   rdx, edx
+        mov     QWORD PTR [rbp-96+rdx*8], rax
+        add     DWORD PTR [rbp-4], 1
+.L12:
+        cmp     DWORD PTR [rbp-4], 6
+        jle     .L13
+        mov     rdx, QWORD PTR [rbp-88]
+        mov     rax, QWORD PTR [rbp-96]
+        mov     rsi, rdx
+        mov     rdi, rax
+        call    addEdge(Node*, Node*)
+        mov     rdx, QWORD PTR [rbp-80]
+        mov     rax, QWORD PTR [rbp-96]
+        mov     rsi, rdx
+        mov     rdi, rax
+        call    addEdge(Node*, Node*)
+        mov     rdx, QWORD PTR [rbp-72]
+        mov     rax, QWORD PTR [rbp-88]
+        mov     rsi, rdx
+        mov     rdi, rax
+        call    addEdge(Node*, Node*)
+        mov     rdx, QWORD PTR [rbp-64]
+        mov     rax, QWORD PTR [rbp-88]
+        mov     rsi, rdx
+        mov     rdi, rax
+        call    addEdge(Node*, Node*)
+        mov     rdx, QWORD PTR [rbp-56]
+        mov     rax, QWORD PTR [rbp-80]
+        mov     rsi, rdx
+        mov     rdi, rax
+        call    addEdge(Node*, Node*)
+        mov     rdx, QWORD PTR [rbp-48]
+        mov     rax, QWORD PTR [rbp-80]
+        mov     rsi, rdx
+        mov     rdi, rax
+        call    addEdge(Node*, Node*)
+        call    clock
+        mov     QWORD PTR [rbp-16], rax
+        mov     rax, QWORD PTR [rbp-96]
+        mov     rdi, rax
+        call    findEdgeCover(Node*)
+        call    clock
+        mov     QWORD PTR [rbp-24], rax
+        mov     rax, QWORD PTR [rbp-24]
+        sub     rax, QWORD PTR [rbp-16]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-32], xmm0
+        mov     rax, QWORD PTR [rbp-32]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 1
+        call    printf
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".visible .entry findEdgeCover(Node*, int)(
+        .param .u64 findEdgeCover(Node*, int)_param_0,
+        .param .u32 findEdgeCover(Node*, int)_param_1
+)
+{
+
+        ld.param.u64    %rd7, [findEdgeCover(Node*, int)_param_0];
+        ld.param.u32    %r5, [findEdgeCover(Node*, int)_param_1];
+        cvta.to.global.u64      %rd1, %rd7;
+        mov.u32         %r6, %ntid.x;
+        mov.u32         %r7, %ctaid.x;
+        mov.u32         %r8, %tid.x;
+        mad.lo.s32      %r1, %r7, %r6, %r8;
+        setp.ge.s32     %p1, %r1, %r5;
+        @%p1 bra        $L__BB0_7;
+
+        mul.wide.s32    %rd8, %r1, 24;
+        add.s64         %rd9, %rd1, %rd8;
+        add.s64         %rd2, %rd9, 16;
+        ld.global.u8    %rs1, [%rd9+16];
+        setp.ne.s16     %p2, %rs1, 0;
+        @%p2 bra        $L__BB0_7;
+
+        mov.u16         %rs2, 1;
+        st.global.u8    [%rd2], %rs2;
+        ld.global.u32   %r2, [%rd2+-12];
+        setp.lt.s32     %p3, %r2, 1;
+        @%p3 bra        $L__BB0_7;
+
+        ld.global.u64   %rd10, [%rd2+-8];
+        cvta.to.global.u64      %rd13, %rd10;
+        mov.u32         %r11, 0;
+
+$L__BB0_4:
+        ld.global.u32   %r10, [%rd13];
+        mul.wide.s32    %rd11, %r10, 24;
+        add.s64         %rd12, %rd1, %rd11;
+        add.s64         %rd5, %rd12, 16;
+        ld.global.u8    %rs3, [%rd12+16];
+        setp.ne.s16     %p4, %rs3, 0;
+        @%p4 bra        $L__BB0_6;
+
+        mov.u16         %rs4, 1;
+        st.global.u8    [%rd5], %rs4;
+
+$L__BB0_6:
+        add.s32         %r11, %r11, 1;
+        add.s64         %rd13, %rd13, 4;
+        setp.lt.s32     %p5, %r11, %r2;
+        @%p5 bra        $L__BB0_4;
+
+$L__BB0_7:
+        ret;
+
+}",0.000002 seconds,0.000272 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+struct Node {
+    int value;
+    struct Node *left;
+    struct Node *right;
+};
+
+struct Node* createNode(int value) {
+    struct Node* newNode = (struct Node*) malloc(sizeof(struct Node));
+    newNode->value = value;
+    newNode->left = NULL;
+    newNode->right = NULL;
+    return newNode;
+}
+
+int vertexCover(struct Node* node) {
+    if (node == NULL) {
+        return 0;
+    }
+    if (node->left == NULL && node->right == NULL) {
+        return 1;
+    }
+    int include = 1 + vertexCover(node->left) + vertexCover(node->right);
+    int exclude = 0;
+    if (node->left != NULL) {
+        exclude += 1 + vertexCover(node->left->left) + vertexCover(node->left->right);
+    }
+    if (node->right != NULL) {
+        exclude += 1 + vertexCover(node->right->left) + vertexCover(node->right->right);
+    }
+    return (include < exclude) ? include : exclude;
+}
+
+int main() {
+    struct Node* root = createNode(4);
+    root->left = createNode(2);
+    root->left->left = createNode(1);
+    root->left->right = createNode(3);
+    root->right = createNode(6);
+    root->right->left = createNode(5);
+    root->right->right = createNode(7);
+
+    clock_t start = clock();
+    int cover = vertexCover(root);
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""\nVertex Cover = %d\n"", cover);
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+#define N 7
+
+struct Node {
+    int value;
+    int left;
+    int right;
+};
+
+__device__ int vertexCoverNode(struct Node* nodes, int* cover, int index) {
+    if (index == -1) {
+        return 0;
+    }
+    if (nodes[index].left == -1 && nodes[index].right == -1) {
+        return 1;
+    }
+    int include = 1 + vertexCoverNode(nodes, cover, nodes[index].left) + vertexCoverNode(nodes, cover, nodes[index].right);
+    int exclude = 0;
+    if (nodes[index].left != -1) {
+        exclude += 1 + vertexCoverNode(nodes, cover, nodes[nodes[index].left].left) + vertexCoverNode(nodes, cover, nodes[nodes[index].left].right);
+    }
+    if (nodes[index].right != -1) {
+        exclude += 1 + vertexCoverNode(nodes, cover, nodes[nodes[index].right].left) + vertexCoverNode(nodes, cover, nodes[nodes[index].right].right);
+    }
+    int result = (include < exclude) ? include : exclude;
+    if (index == 0) {
+        *cover = result;
+    }
+    return result;
+}
+
+__global__ void vertexCoverTree(struct Node* nodes, int* cover) {
+    vertexCoverNode(nodes, cover, 0);
+}
+
+int main() {
+    struct Node h_nodes[N] = {
+        {4, 1, 2},
+        {2, 3, 4},
+        {6, 5, 6},
+        {1, -1, -1},
+        {3, -1, -1},
+        {5, -1, -1},
+        {7, -1, -1}
+    };
+    struct Node* d_nodes;
+    cudaMalloc(&d_nodes, N * sizeof(struct Node));
+    cudaMemcpy(d_nodes, h_nodes, N * sizeof(struct Node), cudaMemcpyHostToDevice);
+
+    int* d_cover;
+    cudaMalloc(&d_cover, sizeof(int));
+    cudaMemset(d_cover, 0, sizeof(int));
+
+    vertexCoverTree<<<1, 1>>>(d_nodes, d_cover);
+
+    int h_cover;
+    cudaMemcpy(&h_cover, d_cover, sizeof(int), cudaMemcpyDeviceToHost);
+    printf(""\nVertex Cover = %d\n"", h_cover);
+
+    cudaFree(d_nodes);
+    cudaFree(d_cover);
+    return 0;
+}
+","createNode(int):
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 32
+        mov     DWORD PTR [rbp-20], edi
+        mov     edi, 24
+        call    malloc
+        mov     QWORD PTR [rbp-8], rax
+        mov     rax, QWORD PTR [rbp-8]
+        mov     edx, DWORD PTR [rbp-20]
+        mov     DWORD PTR [rax], edx
+        mov     rax, QWORD PTR [rbp-8]
+        mov     QWORD PTR [rax+8], 0
+        mov     rax, QWORD PTR [rbp-8]
+        mov     QWORD PTR [rax+16], 0
+        mov     rax, QWORD PTR [rbp-8]
+        leave
+        ret
+vertexCover(Node*):
+        push    rbp
+        mov     rbp, rsp
+        push    rbx
+        sub     rsp, 40
+        mov     QWORD PTR [rbp-40], rdi
+        cmp     QWORD PTR [rbp-40], 0
+        jne     .L4
+        mov     eax, 0
+        jmp     .L5
+.L4:
+        mov     rax, QWORD PTR [rbp-40]
+        mov     rax, QWORD PTR [rax+8]
+        test    rax, rax
+        jne     .L6
+        mov     rax, QWORD PTR [rbp-40]
+        mov     rax, QWORD PTR [rax+16]
+        test    rax, rax
+        jne     .L6
+        mov     eax, 1
+        jmp     .L5
+.L6:
+        mov     rax, QWORD PTR [rbp-40]
+        mov     rax, QWORD PTR [rax+8]
+        mov     rdi, rax
+        call    vertexCover(Node*)
+        lea     ebx, [rax+1]
+        mov     rax, QWORD PTR [rbp-40]
+        mov     rax, QWORD PTR [rax+16]
+        mov     rdi, rax
+        call    vertexCover(Node*)
+        add     eax, ebx
+        mov     DWORD PTR [rbp-24], eax
+        mov     DWORD PTR [rbp-20], 0
+        mov     rax, QWORD PTR [rbp-40]
+        mov     rax, QWORD PTR [rax+8]
+        test    rax, rax
+        je      .L7
+        mov     rax, QWORD PTR [rbp-40]
+        mov     rax, QWORD PTR [rax+8]
+        mov     rax, QWORD PTR [rax+8]
+        mov     rdi, rax
+        call    vertexCover(Node*)
+        lea     ebx, [rax+1]
+        mov     rax, QWORD PTR [rbp-40]
+        mov     rax, QWORD PTR [rax+8]
+        mov     rax, QWORD PTR [rax+16]
+        mov     rdi, rax
+        call    vertexCover(Node*)
+        add     eax, ebx
+        add     DWORD PTR [rbp-20], eax
+.L7:
+        mov     rax, QWORD PTR [rbp-40]
+        mov     rax, QWORD PTR [rax+16]
+        test    rax, rax
+        je      .L8
+        mov     rax, QWORD PTR [rbp-40]
+        mov     rax, QWORD PTR [rax+16]
+        mov     rax, QWORD PTR [rax+8]
+        mov     rdi, rax
+        call    vertexCover(Node*)
+        lea     ebx, [rax+1]
+        mov     rax, QWORD PTR [rbp-40]
+        mov     rax, QWORD PTR [rax+16]
+        mov     rax, QWORD PTR [rax+16]
+        mov     rdi, rax
+        call    vertexCover(Node*)
+        add     eax, ebx
+        add     DWORD PTR [rbp-20], eax
+.L8:
+        mov     eax, DWORD PTR [rbp-24]
+        cmp     eax, DWORD PTR [rbp-20]
+        jge     .L9
+        mov     eax, DWORD PTR [rbp-24]
+        jmp     .L11
+.L9:
+        mov     eax, DWORD PTR [rbp-20]
+.L11:
+        nop
+.L5:
+        mov     rbx, QWORD PTR [rbp-8]
+        leave
+        ret
+.LC1:
+        .string ""\nVertex Cover = %d\n""
+.LC2:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        push    rbx
+        sub     rsp, 56
+        mov     edi, 4
+        call    createNode(int)
+        mov     QWORD PTR [rbp-24], rax
+        mov     edi, 2
+        call    createNode(int)
+        mov     rdx, QWORD PTR [rbp-24]
+        mov     QWORD PTR [rdx+8], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rbx, QWORD PTR [rax+8]
+        mov     edi, 1
+        call    createNode(int)
+        mov     QWORD PTR [rbx+8], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rbx, QWORD PTR [rax+8]
+        mov     edi, 3
+        call    createNode(int)
+        mov     QWORD PTR [rbx+16], rax
+        mov     edi, 6
+        call    createNode(int)
+        mov     rdx, QWORD PTR [rbp-24]
+        mov     QWORD PTR [rdx+16], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rbx, QWORD PTR [rax+16]
+        mov     edi, 5
+        call    createNode(int)
+        mov     QWORD PTR [rbx+8], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rbx, QWORD PTR [rax+16]
+        mov     edi, 7
+        call    createNode(int)
+        mov     QWORD PTR [rbx+16], rax
+        call    clock
+        mov     QWORD PTR [rbp-32], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rdi, rax
+        call    vertexCover(Node*)
+        mov     DWORD PTR [rbp-36], eax
+        call    clock
+        mov     QWORD PTR [rbp-48], rax
+        mov     rax, QWORD PTR [rbp-48]
+        sub     rax, QWORD PTR [rbp-32]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-56], xmm0
+        mov     eax, DWORD PTR [rbp-36]
+        mov     esi, eax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 0
+        call    printf
+        mov     rax, QWORD PTR [rbp-56]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC2
+        mov     eax, 1
+        call    printf
+        mov     eax, 0
+        mov     rbx, QWORD PTR [rbp-8]
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".func  (.param .b32 func_retval0) vertexCoverNode(Node*, int*, int)(
+        .param .b64 vertexCoverNode(Node*, int*, int)_param_0,
+        .param .b64 vertexCoverNode(Node*, int*, int)_param_1,
+        .param .b32 vertexCoverNode(Node*, int*, int)_param_2
+)
+{
+
+        ld.param.u64    %rd3, [vertexCoverNode(Node*, int*, int)_param_0];
+        ld.param.u64    %rd4, [vertexCoverNode(Node*, int*, int)_param_1];
+        ld.param.u32    %r11, [vertexCoverNode(Node*, int*, int)_param_2];
+        cvta.to.global.u64      %rd1, %rd3;
+        setp.eq.s32     %p1, %r11, -1;
+        mov.u32         %r35, 0;
+        @%p1 bra        $L__BB0_9;
+
+        mul.wide.s32    %rd5, %r11, 12;
+        add.s64         %rd6, %rd1, %rd5;
+        add.s64         %rd2, %rd6, 4;
+        ld.global.u32   %r1, [%rd6+4];
+        setp.ne.s32     %p2, %r1, -1;
+        @%p2 bra        $L__BB0_3;
+
+        ld.global.u32   %r14, [%rd2+4];
+        setp.eq.s32     %p3, %r14, -1;
+        mov.u32         %r35, 1;
+        @%p3 bra        $L__BB0_9;
+
+$L__BB0_3:
+        mov.u32         %r34, 0;
+        { // callseq 0, 0
+        st.param.b64    [param0+0], %rd3;
+        st.param.b64    [param1+0], %rd4;
+        st.param.b32    [param2+0], %r1;
+        call.uni (retval0), 
+        vertexCoverNode(Node*, int*, int), 
+        (
+        param0, 
+        param1, 
+        param2
+        );
+        ld.param.b32    %r16, [retval0+0];
+        } // callseq 0
+        ld.global.u32   %r17, [%rd2+4];
+        { // callseq 1, 0
+        st.param.b64    [param0+0], %rd3;
+        st.param.b64    [param1+0], %rd4;
+        st.param.b32    [param2+0], %r17;
+        call.uni (retval0), 
+        vertexCoverNode(Node*, int*, int), 
+        (
+        param0, 
+        param1, 
+        param2
+        );
+        ld.param.b32    %r18, [retval0+0];
+        } // callseq 1
+        add.s32         %r19, %r16, %r18;
+        add.s32         %r2, %r19, 1;
+        ld.global.u32   %r3, [%rd2];
+        setp.eq.s32     %p4, %r3, -1;
+        @%p4 bra        $L__BB0_5;
+
+        mul.wide.s32    %rd7, %r3, 12;
+        add.s64         %rd8, %rd1, %rd7;
+        ld.global.u32   %r20, [%rd8+4];
+        { // callseq 2, 0
+        st.param.b64    [param0+0], %rd3;
+        st.param.b64    [param1+0], %rd4;
+        st.param.b32    [param2+0], %r20;
+        call.uni (retval0), 
+        vertexCoverNode(Node*, int*, int), 
+        (
+        param0, 
+        param1, 
+        param2
+        );
+        ld.param.b32    %r21, [retval0+0];
+        } // callseq 2
+        ld.global.u32   %r22, [%rd2];
+        mul.wide.s32    %rd9, %r22, 12;
+        add.s64         %rd10, %rd1, %rd9;
+        ld.global.u32   %r23, [%rd10+8];
+        { // callseq 3, 0
+        st.param.b64    [param0+0], %rd3;
+        st.param.b64    [param1+0], %rd4;
+        st.param.b32    [param2+0], %r23;
+        call.uni (retval0), 
+        vertexCoverNode(Node*, int*, int), 
+        (
+        param0, 
+        param1, 
+        param2
+        );
+        ld.param.b32    %r24, [retval0+0];
+        } // callseq 3
+        add.s32         %r25, %r21, %r24;
+        add.s32         %r34, %r25, 1;
+
+$L__BB0_5:
+        ld.global.u32   %r6, [%rd2+4];
+        setp.eq.s32     %p5, %r6, -1;
+        @%p5 bra        $L__BB0_7;
+
+        mul.wide.s32    %rd11, %r6, 12;
+        add.s64         %rd12, %rd1, %rd11;
+        ld.global.u32   %r26, [%rd12+4];
+        { // callseq 4, 0
+        st.param.b64    [param0+0], %rd3;
+        st.param.b64    [param1+0], %rd4;
+        st.param.b32    [param2+0], %r26;
+        call.uni (retval0), 
+        vertexCoverNode(Node*, int*, int), 
+        (
+        param0, 
+        param1, 
+        param2
+        );
+        ld.param.b32    %r27, [retval0+0];
+        } // callseq 4
+        ld.global.u32   %r28, [%rd2+4];
+        mul.wide.s32    %rd13, %r28, 12;
+        add.s64         %rd14, %rd1, %rd13;
+        ld.global.u32   %r29, [%rd14+8];
+        { // callseq 5, 0
+        st.param.b64    [param0+0], %rd3;
+        st.param.b64    [param1+0], %rd4;
+        st.param.b32    [param2+0], %r29;
+        call.uni (retval0), 
+        vertexCoverNode(Node*, int*, int), 
+        (
+        param0, 
+        param1, 
+        param2
+        );
+        ld.param.b32    %r30, [retval0+0];
+        } // callseq 5
+        add.s32         %r31, %r34, %r27;
+        add.s32         %r32, %r31, %r30;
+        add.s32         %r34, %r32, 1;
+
+$L__BB0_7:
+        min.s32         %r35, %r2, %r34;
+        setp.ne.s32     %p6, %r11, 0;
+        @%p6 bra        $L__BB0_9;
+
+        cvta.to.global.u64      %rd15, %rd4;
+        st.global.u32   [%rd15], %r35;
+
+$L__BB0_9:
+        st.param.b32    [func_retval0+0], %r35;
+        ret;
+
+}
+.visible .entry vertexCoverTree(Node*, int*)(
+        .param .u64 vertexCoverTree(Node*, int*)_param_0,
+        .param .u64 vertexCoverTree(Node*, int*)_param_1
+)
+{
+
+        ld.param.u64    %rd1, [vertexCoverTree(Node*, int*)_param_0];
+        ld.param.u64    %rd2, [vertexCoverTree(Node*, int*)_param_1];
+        mov.u32         %r1, 0;
+        { // callseq 6, 0
+        st.param.b64    [param0+0], %rd1;
+        st.param.b64    [param1+0], %rd2;
+        st.param.b32    [param2+0], %r1;
+        call.uni (retval0), 
+        vertexCoverNode(Node*, int*, int), 
+        (
+        param0, 
+        param1, 
+        param2
+        );
+        ld.param.b32    %r2, [retval0+0];
+        } // callseq 6
+        ret;
+
+}",0.000002 seconds,0.000044 seconds
+"#include <stdio.h>
+#include <string.h>
+
+unsigned int hash(char* str)
+{
+    unsigned int hash = 0;
+
+    for (int i = 0; i < strlen(str); i++)
+    {
+        hash = hash * 31 + str[i];
+    }
+
+    return hash;
+}
+
+int main()
+{
+    char* str = ""Hello, world!"";
+    unsigned int hash_value = hash(str);
+    printf(""Hash value: %u\n"", hash_value);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <cuda_runtime.h>
+
+__device__ unsigned int hash(char* str)
+{
+    unsigned int hash = 0;
+
+    for (int i = 0; i < strlen(str); i++)
+    {
+        hash = hash * 31 + str[i];
+    }
+
+    return hash;
+}
+
+__global__ void hashKernel(char* str, unsigned int* hash_value)
+{
+    *hash_value = hash(str);
+}
+
+int main()
+{
+    char* str = ""Hello, world!"";
+    unsigned int hash_value;
+    char* d_str;
+    unsigned int* d_hash_value;
+    cudaMalloc(&d_str, strlen(str) + 1);
+    cudaMemcpy(d_str, str, strlen(str) + 1, cudaMemcpyHostToDevice);
+    cudaMalloc(&d_hash_value, sizeof(unsigned int));
+    hashKernel<<<1, 1>>>(d_str, d_hash_value);
+    cudaMemcpy(&hash_value, d_hash_value, sizeof(unsigned int), cudaMemcpyDeviceToHost);
+    printf(""Hash value: %u\n"", hash_value);
+    cudaFree(d_str);
+    cudaFree(d_hash_value);
+
+    return 0;
+}
+","hash(char*):
+        push    rbp
+        mov     rbp, rsp
+        mov     QWORD PTR [rbp-24], rdi
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L2
+.L3:
+        mov     eax, DWORD PTR [rbp-4]
+        sal     eax, 5
+        mov     edx, eax
+        mov     eax, DWORD PTR [rbp-4]
+        lea     ecx, [rdx+rax]
+        mov     rax, QWORD PTR [rbp-24]
+        lea     rdx, [rax+1]
+        mov     QWORD PTR [rbp-24], rdx
+        movzx   eax, BYTE PTR [rax]
+        movsx   eax, al
+        add     eax, ecx
+        mov     DWORD PTR [rbp-4], eax
+.L2:
+        mov     rax, QWORD PTR [rbp-24]
+        movzx   eax, BYTE PTR [rax]
+        test    al, al
+        jne     .L3
+        mov     eax, DWORD PTR [rbp-4]
+        pop     rbp
+        ret
+.LC0:
+        .string ""Hello, world!""
+.LC1:
+        .string ""Hash value: %u\n""
+.LC3:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 48
+        mov     QWORD PTR [rbp-8], OFFSET FLAT:.LC0
+        call    clock
+        mov     QWORD PTR [rbp-16], rax
+        mov     rax, QWORD PTR [rbp-8]
+        mov     rdi, rax
+        call    hash(char*)
+        mov     DWORD PTR [rbp-20], eax
+        mov     eax, DWORD PTR [rbp-20]
+        mov     esi, eax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 0
+        call    printf
+        call    clock
+        mov     QWORD PTR [rbp-32], rax
+        mov     rax, QWORD PTR [rbp-32]
+        sub     rax, QWORD PTR [rbp-16]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC2[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-40], xmm0
+        mov     rax, QWORD PTR [rbp-40]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC3
+        mov     eax, 1
+        call    printf
+        mov     eax, 0
+        leave
+        ret
+.LC2:
+        .long   0
+        .long   1093567616",".visible .entry hash_kernel(char*, int, unsigned int*)(
+        .param .u64 hash_kernel(char*, int, unsigned int*)_param_0,
+        .param .u32 hash_kernel(char*, int, unsigned int*)_param_1,
+        .param .u64 hash_kernel(char*, int, unsigned int*)_param_2
+)
+{
+
+        ld.param.u64    %rd2, [hash_kernel(char*, int, unsigned int*)_param_0];
+        ld.param.u32    %r9, [hash_kernel(char*, int, unsigned int*)_param_1];
+        ld.param.u64    %rd3, [hash_kernel(char*, int, unsigned int*)_param_2];
+        mov.u32         %r1, %ntid.x;
+        mov.u32         %r11, %ctaid.x;
+        mov.u32         %r12, %tid.x;
+        mad.lo.s32      %r17, %r11, %r1, %r12;
+        setp.ge.s32     %p1, %r17, %r9;
+        mov.u32         %r19, 0;
+        @%p1 bra        $L__BB0_3;
+
+        mov.u32         %r14, %nctaid.x;
+        mul.lo.s32      %r3, %r1, %r14;
+        cvta.to.global.u64      %rd1, %rd2;
+
+$L__BB0_2:
+        cvt.s64.s32     %rd4, %r17;
+        add.s64         %rd5, %rd1, %rd4;
+        ld.global.s8    %r15, [%rd5];
+        mad.lo.s32      %r19, %r19, 33, %r15;
+        add.s32         %r17, %r17, %r3;
+        setp.lt.s32     %p2, %r17, %r9;
+        @%p2 bra        $L__BB0_2;
+
+$L__BB0_3:
+        cvta.to.global.u64      %rd6, %rd3;
+        atom.global.add.u32     %r16, [%rd6], %r19;
+        ret;
+
+}
+        {
+
+        }",0.000023 seconds,2.143957 seconds
+"#include <stdio.h>
+#include <string.h>
+#include <time.h>
+
+unsigned long hash_djb2(unsigned char *str)
+{
+    unsigned long hash = 5381;
+    int c;
+
+    while ((c = *str++))
+    {
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+    }
+
+    return hash;
+}
+
+int main()
+{
+    const int N = 10000000;
+    char str[] = ""Hello World!"";
+    unsigned long hash = 0;
+    clock_t start = clock();
+
+    for (int i = 0; i < N; i++)
+    {
+        hash = hash_djb2((unsigned char*)str);
+    }
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Hash = %lu\n"", hash);
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <string.h>
+#include <cuda_runtime.h>
+
+__device__ unsigned long hash_djb2(unsigned char *str)
+{
+    unsigned long hash = 5381;
+    int c;
+
+    while ((c = *str++))
+    {
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+    }
+
+    return hash;
+}
+
+__global__ void hashKernel(unsigned long* d_hashes, char* d_str, int N)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < N)
+    {
+        d_hashes[tid] = hash_djb2((unsigned char*)&d_str[0]);
+    }
+}
+
+int main()
+{
+    const int N = 10000000;
+    char str[] = ""Hello World!"";
+    unsigned long hash = 0;
+    unsigned long* d_hashes;
+    char* d_str;
+    cudaMalloc(&d_hashes, N * sizeof(unsigned long));
+    cudaMalloc(&d_str, strlen(str) * sizeof(char));
+    cudaMemcpy(d_str, str, strlen(str) * sizeof(char), cudaMemcpyHostToDevice);
+    clock_t start = clock();
+
+    hashKernel<<<(N + 255) / 256, 256>>>(d_hashes, d_str, N);
+    cudaMemcpy(&hash, d_hashes, sizeof(unsigned long), cudaMemcpyDeviceToHost);
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Hash = %lu\n"", hash);
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    cudaFree(d_hashes);
+    cudaFree(d_str);
+
+    return 0;
+}
+","hash_djb2(unsigned char*):
+        push    rbp
+        mov     rbp, rsp
+        mov     QWORD PTR [rbp-24], rdi
+        mov     QWORD PTR [rbp-8], 5381
+        jmp     .L2
+.L3:
+        mov     rax, QWORD PTR [rbp-8]
+        sal     rax, 5
+        mov     rdx, rax
+        mov     rax, QWORD PTR [rbp-8]
+        add     rdx, rax
+        mov     eax, DWORD PTR [rbp-12]
+        cdqe
+        add     rax, rdx
+        mov     QWORD PTR [rbp-8], rax
+.L2:
+        mov     rax, QWORD PTR [rbp-24]
+        lea     rdx, [rax+1]
+        mov     QWORD PTR [rbp-24], rdx
+        movzx   eax, BYTE PTR [rax]
+        movzx   eax, al
+        mov     DWORD PTR [rbp-12], eax
+        cmp     DWORD PTR [rbp-12], 0
+        setne   al
+        test    al, al
+        jne     .L3
+        mov     rax, QWORD PTR [rbp-8]
+        pop     rbp
+        ret
+.LC1:
+        .string ""Hash = %lu\n""
+.LC2:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 64
+        mov     DWORD PTR [rbp-16], 10000000
+        movabs  rax, 8022916924116329800
+        mov     QWORD PTR [rbp-53], rax
+        movabs  rax, 9399091170596640
+        mov     QWORD PTR [rbp-48], rax
+        mov     QWORD PTR [rbp-8], 0
+        call    clock
+        mov     QWORD PTR [rbp-24], rax
+        mov     DWORD PTR [rbp-12], 0
+        jmp     .L6
+.L7:
+        lea     rax, [rbp-53]
+        mov     rdi, rax
+        call    hash_djb2(unsigned char*)
+        mov     QWORD PTR [rbp-8], rax
+        add     DWORD PTR [rbp-12], 1
+.L6:
+        cmp     DWORD PTR [rbp-12], 9999999
+        jle     .L7
+        call    clock
+        mov     QWORD PTR [rbp-32], rax
+        mov     rax, QWORD PTR [rbp-32]
+        sub     rax, QWORD PTR [rbp-24]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-40], xmm0
+        mov     rax, QWORD PTR [rbp-8]
+        mov     rsi, rax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 0
+        call    printf
+        mov     rax, QWORD PTR [rbp-40]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC2
+        mov     eax, 1
+        call    printf
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".visible .entry hashKernel(unsigned long*, char*, int)(
+        .param .u64 hashKernel(unsigned long*, char*, int)_param_0,
+        .param .u64 hashKernel(unsigned long*, char*, int)_param_1,
+        .param .u32 hashKernel(unsigned long*, char*, int)_param_2
+)
+{
+
+        ld.param.u64    %rd7, [hashKernel(unsigned long*, char*, int)_param_0];
+        ld.param.u64    %rd8, [hashKernel(unsigned long*, char*, int)_param_1];
+        ld.param.u32    %r2, [hashKernel(unsigned long*, char*, int)_param_2];
+        mov.u32         %r3, %ntid.x;
+        mov.u32         %r4, %ctaid.x;
+        mov.u32         %r5, %tid.x;
+        mad.lo.s32      %r1, %r4, %r3, %r5;
+        setp.ge.s32     %p1, %r1, %r2;
+        @%p1 bra        $L__BB0_5;
+
+        cvta.to.global.u64      %rd18, %rd8;
+        ld.global.u8    %rs4, [%rd18];
+        setp.eq.s16     %p2, %rs4, 0;
+        mov.u64         %rd19, 5381;
+        @%p2 bra        $L__BB0_4;
+
+$L__BB0_3:
+        cvt.u64.u16     %rd11, %rs4;
+        and.b64         %rd12, %rd11, 255;
+        mul.lo.s64      %rd13, %rd19, 33;
+        add.s64         %rd19, %rd13, %rd12;
+        add.s64         %rd5, %rd18, 1;
+        ld.global.u8    %rs4, [%rd18+1];
+        setp.ne.s16     %p3, %rs4, 0;
+        mov.u64         %rd18, %rd5;
+        @%p3 bra        $L__BB0_3;
+
+$L__BB0_4:
+        cvta.to.global.u64      %rd14, %rd7;
+        mul.wide.s32    %rd15, %r1, 8;
+        add.s64         %rd16, %rd14, %rd15;
+        st.global.u64   [%rd16], %rd19;
+
+$L__BB0_5:
+        ret;
+
+}
+        {
+
+        }", 0.286721 seconds,0.000564 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+int main()
+{
+    const int N = 100000000;
+    float* x = (float*)malloc(N * sizeof(float));
+    float* y = (float*)malloc(N * sizeof(float));
+    float* z = (float*)malloc(N * sizeof(float));
+    srand(time(NULL));
+    clock_t start = clock();
+
+    for (int i = 0; i < N; i++)
+    {
+        x[i] = (float)(rand() % 1000) / 1000.0f;
+        y[i] = (float)(rand() % 1000) / 1000.0f;
+        z[i] = x[i] + y[i];
+    }
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    free(x);
+    free(y);
+    free(z);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+__global__ void addKernel(float* x, float* y, float* z, int N)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < N)
+    {
+        z[tid] = x[tid] + y[tid];
+    }
+}
+
+int main()
+{
+    const int N = 100000000;
+    float* x = (float*)malloc(N * sizeof(float));
+    float* y = (float*)malloc(N * sizeof(float));
+    float* z = (float*)malloc(N * sizeof(float));
+    float* d_x;
+    float* d_y;
+    float* d_z;
+    cudaMalloc(&d_x, N * sizeof(float));
+    cudaMalloc(&d_y, N * sizeof(float));
+    cudaMalloc(&d_z, N * sizeof(float));
+    srand(time(NULL));
+    clock_t start = clock();
+
+    for (int i = 0; i < N; i++)
+    {
+        x[i] = (float)(rand() % 1000) / 1000.0f;
+        y[i] = (float)(rand() % 1000) / 1000.0f;
+    }
+
+    cudaMemcpy(d_x, x, N * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_y, y, N * sizeof(float), cudaMemcpyHostToDevice);
+    addKernel<<<(N + 255) / 256, 256>>>(d_x, d_y, d_z, N);
+    cudaMemcpy(z, d_z, N * sizeof(float), cudaMemcpyDeviceToHost);
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    free(x);
+    free(y);
+    free(z);
+    cudaFree(d_x);
+    cudaFree(d_y);
+    cudaFree(d_z);
+
+    return 0;
+}
+",".LC2:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 64
+        mov     DWORD PTR [rbp-8], 10000000
+        mov     edi, 40000000
+        call    malloc
+        mov     QWORD PTR [rbp-16], rax
+        mov     edi, 40000000
+        call    malloc
+        mov     QWORD PTR [rbp-24], rax
+        mov     edi, 40000000
+        call    malloc
+        mov     QWORD PTR [rbp-32], rax
+        mov     edi, 0
+        call    time
+        mov     edi, eax
+        call    srand
+        call    clock
+        mov     QWORD PTR [rbp-40], rax
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L2
+.L3:
+        call    rand
+        movsx   rdx, eax
+        imul    rdx, rdx, 274877907
+        shr     rdx, 32
+        sar     edx, 6
+        mov     ecx, eax
+        sar     ecx, 31
+        sub     edx, ecx
+        imul    ecx, edx, 1000
+        sub     eax, ecx
+        mov     edx, eax
+        pxor    xmm0, xmm0
+        cvtsi2ss        xmm0, edx
+        mov     eax, DWORD PTR [rbp-4]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-16]
+        add     rax, rdx
+        movss   xmm1, DWORD PTR .LC0[rip]
+        divss   xmm0, xmm1
+        movss   DWORD PTR [rax], xmm0
+        call    rand
+        movsx   rdx, eax
+        imul    rdx, rdx, 274877907
+        shr     rdx, 32
+        sar     edx, 6
+        mov     ecx, eax
+        sar     ecx, 31
+        sub     edx, ecx
+        imul    ecx, edx, 1000
+        sub     eax, ecx
+        mov     edx, eax
+        pxor    xmm0, xmm0
+        cvtsi2ss        xmm0, edx
+        mov     eax, DWORD PTR [rbp-4]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        movss   xmm1, DWORD PTR .LC0[rip]
+        divss   xmm0, xmm1
+        movss   DWORD PTR [rax], xmm0
+        mov     eax, DWORD PTR [rbp-4]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-16]
+        add     rax, rdx
+        movss   xmm1, DWORD PTR [rax]
+        mov     eax, DWORD PTR [rbp-4]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        movss   xmm0, DWORD PTR [rax]
+        mov     eax, DWORD PTR [rbp-4]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-32]
+        add     rax, rdx
+        addss   xmm0, xmm1
+        movss   DWORD PTR [rax], xmm0
+        add     DWORD PTR [rbp-4], 1
+.L2:
+        cmp     DWORD PTR [rbp-4], 9999999
+        jle     .L3
+        call    clock
+        mov     QWORD PTR [rbp-48], rax
+        mov     rax, QWORD PTR [rbp-48]
+        sub     rax, QWORD PTR [rbp-40]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC1[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-56], xmm0
+        mov     rax, QWORD PTR [rbp-56]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC2
+        mov     eax, 1
+        call    printf
+        mov     rax, QWORD PTR [rbp-16]
+        mov     rdi, rax
+        call    free
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rdi, rax
+        call    free
+        mov     rax, QWORD PTR [rbp-32]
+        mov     rdi, rax
+        call    free
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   1148846080
+.LC1:
+        .long   0
+        .long   1093567616",".visible .entry addKernel(float*, float*, float*, int)(
+        .param .u64 addKernel(float*, float*, float*, int)_param_0,
+        .param .u64 addKernel(float*, float*, float*, int)_param_1,
+        .param .u64 addKernel(float*, float*, float*, int)_param_2,
+        .param .u32 addKernel(float*, float*, float*, int)_param_3
+)
+{
+
+        ld.param.u64    %rd1, [addKernel(float*, float*, float*, int)_param_0];
+        ld.param.u64    %rd2, [addKernel(float*, float*, float*, int)_param_1];
+        ld.param.u64    %rd3, [addKernel(float*, float*, float*, int)_param_2];
+        ld.param.u32    %r2, [addKernel(float*, float*, float*, int)_param_3];
+        mov.u32         %r3, %ctaid.x;
+        mov.u32         %r4, %ntid.x;
+        mov.u32         %r5, %tid.x;
+        mad.lo.s32      %r1, %r3, %r4, %r5;
+        setp.ge.s32     %p1, %r1, %r2;
+        @%p1 bra        $L__BB0_2;
+
+        cvta.to.global.u64      %rd4, %rd1;
+        mul.wide.s32    %rd5, %r1, 4;
+        add.s64         %rd6, %rd4, %rd5;
+        cvta.to.global.u64      %rd7, %rd2;
+        add.s64         %rd8, %rd7, %rd5;
+        ld.global.f32   %f1, [%rd8];
+        ld.global.f32   %f2, [%rd6];
+        add.f32         %f3, %f2, %f1;
+        cvta.to.global.u64      %rd9, %rd3;
+        add.s64         %rd10, %rd9, %rd5;
+        st.global.f32   [%rd10], %f3;
+
+$L__BB0_2:
+        ret;
+
+}",0.416105 seconds,0.455570 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+void bubble_sort(int arr[], int n)
+{
+    for (int i = 0; i < n - 1; i++)
+    {
+        for (int j = 0; j < n - i - 1; j++)
+        {
+            if (arr[j] > arr[j + 1])
+            {
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+
+int main()
+{
+    const int N = 1000000;
+    int* arr = (int*)malloc(N * sizeof(int));
+    srand(time(NULL));
+    for (int i = 0; i < N; i++)
+    {
+        arr[i] = rand() % 1000;
+    }
+
+    clock_t start = clock();
+    bubble_sort(arr, N);
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    free(arr);
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+__global__ void bubble_sort_kernel(int* arr, int n)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < n - 1)
+    {
+        for (int i = 0; i < n - tid - 1; i++)
+        {
+            if (arr[i] > arr[i + 1])
+            {
+                int temp = arr[i];
+                arr[i] = arr[i + 1];
+                arr[i + 1] = temp;
+            }
+        }
+    }
+}
+
+void bubble_sort_gpu(int* arr, int n)
+{
+    int* d_arr;
+    cudaMalloc(&d_arr, n * sizeof(int));
+    cudaMemcpy(d_arr, arr, n * sizeof(int), cudaMemcpyHostToDevice);
+
+    int block_size = 256;
+    int grid_size = (n + block_size - 1) / block_size;
+    for (int i = 0; i < n - 1; i++)
+    {
+        bubble_sort_kernel<<<grid_size, block_size>>>(d_arr, n);
+    }
+
+    cudaMemcpy(arr, d_arr, n * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaFree(d_arr);
+}
+
+int main()
+{
+    const int N = 1000000;
+    int* arr = (int*)malloc(N * sizeof(int));
+    srand(time(NULL));
+    for (int i = 0; i < N; i++)
+    {
+        arr[i] = rand() % 1000;
+    }
+
+    clock_t start = clock();
+    bubble_sort_gpu(arr, N);
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    free(arr);
+    return 0;
+}
+","bubble_sort(int*, int):
+        push    rbp
+        mov     rbp, rsp
+        mov     QWORD PTR [rbp-24], rdi
+        mov     DWORD PTR [rbp-28], esi
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L2
+.L6:
+        mov     DWORD PTR [rbp-8], 0
+        jmp     .L3
+.L5:
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        mov     edx, DWORD PTR [rax]
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        add     rax, 1
+        lea     rcx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rcx
+        mov     eax, DWORD PTR [rax]
+        cmp     edx, eax
+        jle     .L4
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        mov     eax, DWORD PTR [rax]
+        mov     DWORD PTR [rbp-12], eax
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        add     rax, 1
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        mov     edx, DWORD PTR [rbp-8]
+        movsx   rdx, edx
+        lea     rcx, [0+rdx*4]
+        mov     rdx, QWORD PTR [rbp-24]
+        add     rdx, rcx
+        mov     eax, DWORD PTR [rax]
+        mov     DWORD PTR [rdx], eax
+        mov     eax, DWORD PTR [rbp-8]
+        cdqe
+        add     rax, 1
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rdx, rax
+        mov     eax, DWORD PTR [rbp-12]
+        mov     DWORD PTR [rdx], eax
+.L4:
+        add     DWORD PTR [rbp-8], 1
+.L3:
+        mov     eax, DWORD PTR [rbp-28]
+        sub     eax, DWORD PTR [rbp-4]
+        sub     eax, 1
+        cmp     DWORD PTR [rbp-8], eax
+        jl      .L5
+        add     DWORD PTR [rbp-4], 1
+.L2:
+        mov     eax, DWORD PTR [rbp-28]
+        sub     eax, 1
+        cmp     DWORD PTR [rbp-4], eax
+        jl      .L6
+        nop
+        nop
+        pop     rbp
+        ret
+.LC1:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 48
+        mov     DWORD PTR [rbp-8], 10000
+        mov     edi, 40000
+        call    malloc
+        mov     QWORD PTR [rbp-16], rax
+        mov     edi, 0
+        call    time
+        mov     edi, eax
+        call    srand
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L8
+.L9:
+        call    rand
+        mov     edx, DWORD PTR [rbp-4]
+        movsx   rdx, edx
+        lea     rcx, [0+rdx*4]
+        mov     rdx, QWORD PTR [rbp-16]
+        lea     rsi, [rcx+rdx]
+        movsx   rdx, eax
+        imul    rdx, rdx, 274877907
+        shr     rdx, 32
+        sar     edx, 6
+        mov     ecx, eax
+        sar     ecx, 31
+        sub     edx, ecx
+        imul    ecx, edx, 1000
+        sub     eax, ecx
+        mov     edx, eax
+        mov     DWORD PTR [rsi], edx
+        add     DWORD PTR [rbp-4], 1
+.L8:
+        cmp     DWORD PTR [rbp-4], 9999
+        jle     .L9
+        call    clock
+        mov     QWORD PTR [rbp-24], rax
+        mov     rax, QWORD PTR [rbp-16]
+        mov     esi, 10000
+        mov     rdi, rax
+        call    bubble_sort(int*, int)
+        call    clock
+        mov     QWORD PTR [rbp-32], rax
+        mov     rax, QWORD PTR [rbp-32]
+        sub     rax, QWORD PTR [rbp-24]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-40], xmm0
+        mov     rax, QWORD PTR [rbp-40]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 1
+        call    printf
+        mov     rax, QWORD PTR [rbp-16]
+        mov     rdi, rax
+        call    free
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".visible .entry bubble_sort_kernel(int*, int)(
+        .param .u64 bubble_sort_kernel(int*, int)_param_0,
+        .param .u32 bubble_sort_kernel(int*, int)_param_1
+)
+{
+
+        ld.param.u64    %rd8, [bubble_sort_kernel(int*, int)_param_0];
+        ld.param.u32    %r29, [bubble_sort_kernel(int*, int)_param_1];
+        cvta.to.global.u64      %rd1, %rd8;
+        mov.u32         %r30, %ntid.x;
+        mov.u32         %r31, %ctaid.x;
+        mul.lo.s32      %r1, %r31, %r30;
+        mov.u32         %r2, %tid.x;
+        add.s32         %r3, %r1, %r2;
+        add.s32         %r32, %r29, -1;
+        setp.ge.s32     %p1, %r3, %r32;
+        @%p1 bra        $L__BB0_18;
+
+        not.b32         %r33, %r3;
+        add.s32         %r4, %r33, %r29;
+        setp.lt.s32     %p2, %r4, 1;
+        @%p2 bra        $L__BB0_18;
+
+        add.s32         %r35, %r29, -2;
+        sub.s32         %r36, %r35, %r3;
+        and.b32         %r49, %r4, 3;
+        setp.lt.u32     %p3, %r36, 3;
+        mov.u32         %r47, 0;
+        @%p3 bra        $L__BB0_13;
+
+        ld.global.u32   %r41, [%rd1];
+        sub.s32         %r38, %r29, %r1;
+        sub.s32         %r39, %r38, %r49;
+        sub.s32         %r40, %r39, %r2;
+        mov.u64         %rd11, %rd1;
+
+$L__BB0_4:
+        ld.global.u32   %r43, [%rd11+4];
+        setp.le.s32     %p4, %r41, %r43;
+        @%p4 bra        $L__BB0_6;
+
+        st.global.u32   [%rd11], %r43;
+        st.global.u32   [%rd11+4], %r41;
+        mov.u32         %r43, %r41;
+
+$L__BB0_6:
+        ld.global.u32   %r44, [%rd11+8];
+        setp.le.s32     %p5, %r43, %r44;
+        @%p5 bra        $L__BB0_8;
+
+        st.global.u32   [%rd11+4], %r44;
+        st.global.u32   [%rd11+8], %r43;
+        mov.u32         %r44, %r43;
+
+$L__BB0_8:
+        ld.global.u32   %r45, [%rd11+12];
+        setp.le.s32     %p6, %r44, %r45;
+        @%p6 bra        $L__BB0_10;
+
+        st.global.u32   [%rd11+8], %r45;
+        st.global.u32   [%rd11+12], %r44;
+        mov.u32         %r45, %r44;
+
+$L__BB0_10:
+        add.s32         %r47, %r47, 4;
+        ld.global.u32   %r41, [%rd11+16];
+        setp.le.s32     %p7, %r45, %r41;
+        @%p7 bra        $L__BB0_12;
+
+        st.global.u32   [%rd11+12], %r41;
+        st.global.u32   [%rd11+16], %r45;
+        mov.u32         %r41, %r45;
+
+$L__BB0_12:
+        add.s32         %r40, %r40, -4;
+        setp.ne.s32     %p8, %r40, 1;
+        add.s64         %rd11, %rd11, 16;
+        @%p8 bra        $L__BB0_4;
+
+$L__BB0_13:
+        setp.eq.s32     %p9, %r49, 0;
+        @%p9 bra        $L__BB0_18;
+
+        mul.wide.s32    %rd9, %r47, 4;
+        add.s64         %rd10, %rd1, %rd9;
+        ld.global.u32   %r48, [%rd10];
+        add.s64         %rd12, %rd10, 4;
+
+$L__BB0_15:
+        ld.global.u32   %r50, [%rd12];
+        setp.le.s32     %p10, %r48, %r50;
+        @%p10 bra       $L__BB0_17;
+
+        ld.global.u32   %r26, [%rd12+-4];
+        st.global.u32   [%rd12+-4], %r50;
+        st.global.u32   [%rd12], %r26;
+        mov.u32         %r50, %r26;
+
+$L__BB0_17:
+        add.s64         %rd12, %rd12, 4;
+        add.s32         %r49, %r49, -1;
+        setp.ne.s32     %p11, %r49, 0;
+        mov.u32         %r48, %r50;
+        @%p11 bra       $L__BB0_15;
+
+$L__BB0_18:
+        ret;
+
+}",0.262003 seconds,4.538758 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+int linear_search(int *arr, int n, int key)
+{
+    for (int i = 0; i < n; i++)
+    {
+        if (arr[i] == key)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int main()
+{
+    const int N = 100000000;
+    int *arr = (int *)malloc(N * sizeof(int));
+    for (int i = 0; i < N; i++)
+    {
+        arr[i] = i;
+    }
+    int key = 99999999;
+    clock_t start = clock();
+    int index = linear_search(arr, N, key);
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    if (index == -1)
+    {
+        printf(""Element not found\n"");
+    }
+    else
+    {
+        printf(""Element found at index %d\n"", index);
+    }
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+    free(arr);
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+__global__ void linear_search(int *arr, int n, int key, int *result)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    if (tid < n)
+    {
+        if (arr[tid] == key)
+        {
+            atomicMin(result, tid);
+        }
+    }
+}
+
+int main()
+{
+    const int N = 100000000;
+    int *arr = (int *)malloc(N * sizeof(int));
+    int *d_arr, *d_result, result = N;
+    cudaMalloc(&d_arr, N * sizeof(int));
+    cudaMalloc(&d_result, sizeof(int));
+    cudaMemcpy(d_result, &result, sizeof(int), cudaMemcpyHostToDevice);
+    for (int i = 0; i < N; i++)
+    {
+        arr[i] = i;
+    }
+    int key = 99999999;
+    cudaMemcpy(d_arr, arr, N * sizeof(int), cudaMemcpyHostToDevice);
+    clock_t start = clock();
+    linear_search<<<(N + 255) / 256, 256>>>(d_arr, N, key, d_result);
+    cudaMemcpy(&result, d_result, sizeof(int), cudaMemcpyDeviceToHost);
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    if (result == N)
+    {
+        printf(""Element not found\n"");
+    }
+    else
+    {
+        printf(""Element found at index %d\n"", result);
+    }
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+    free(arr);
+    cudaFree(d_arr);
+    cudaFree(d_result);
+    return 0;
+}
+","linear_search(int*, int, int):
+        push    rbp
+        mov     rbp, rsp
+        mov     QWORD PTR [rbp-24], rdi
+        mov     DWORD PTR [rbp-28], esi
+        mov     DWORD PTR [rbp-32], edx
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L2
+.L5:
+        mov     eax, DWORD PTR [rbp-4]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rdx
+        mov     eax, DWORD PTR [rax]
+        cmp     DWORD PTR [rbp-32], eax
+        jne     .L3
+        mov     eax, DWORD PTR [rbp-4]
+        jmp     .L4
+.L3:
+        add     DWORD PTR [rbp-4], 1
+.L2:
+        mov     eax, DWORD PTR [rbp-4]
+        cmp     eax, DWORD PTR [rbp-28]
+        jl      .L5
+        mov     eax, -1
+.L4:
+        pop     rbp
+        ret
+.LC1:
+        .string ""Element not found""
+.LC2:
+        .string ""Element found at index %d\n""
+.LC3:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 64
+        mov     DWORD PTR [rbp-8], 10000000
+        mov     edi, 40000000
+        call    malloc
+        mov     QWORD PTR [rbp-16], rax
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L7
+.L8:
+        mov     eax, DWORD PTR [rbp-4]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-16]
+        add     rdx, rax
+        mov     eax, DWORD PTR [rbp-4]
+        mov     DWORD PTR [rdx], eax
+        add     DWORD PTR [rbp-4], 1
+.L7:
+        cmp     DWORD PTR [rbp-4], 9999999
+        jle     .L8
+        mov     DWORD PTR [rbp-20], 99999999
+        call    clock
+        mov     QWORD PTR [rbp-32], rax
+        mov     edx, DWORD PTR [rbp-20]
+        mov     rax, QWORD PTR [rbp-16]
+        mov     esi, 10000000
+        mov     rdi, rax
+        call    linear_search(int*, int, int)
+        mov     DWORD PTR [rbp-36], eax
+        call    clock
+        mov     QWORD PTR [rbp-48], rax
+        mov     rax, QWORD PTR [rbp-48]
+        sub     rax, QWORD PTR [rbp-32]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-56], xmm0
+        cmp     DWORD PTR [rbp-36], -1
+        jne     .L9
+        mov     edi, OFFSET FLAT:.LC1
+        call    puts
+        jmp     .L10
+.L9:
+        mov     eax, DWORD PTR [rbp-36]
+        mov     esi, eax
+        mov     edi, OFFSET FLAT:.LC2
+        mov     eax, 0
+        call    printf
+.L10:
+        mov     rax, QWORD PTR [rbp-56]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC3
+        mov     eax, 1
+        call    printf
+        mov     rax, QWORD PTR [rbp-16]
+        mov     rdi, rax
+        call    free
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".visible .entry linear_search(int*, int, int, int*)(
+        .param .u64 linear_search(int*, int, int, int*)_param_0,
+        .param .u32 linear_search(int*, int, int, int*)_param_1,
+        .param .u32 linear_search(int*, int, int, int*)_param_2,
+        .param .u64 linear_search(int*, int, int, int*)_param_3
+)
+{
+
+        ld.param.u64    %rd1, [linear_search(int*, int, int, int*)_param_0];
+        ld.param.u32    %r3, [linear_search(int*, int, int, int*)_param_1];
+        ld.param.u32    %r2, [linear_search(int*, int, int, int*)_param_2];
+        ld.param.u64    %rd2, [linear_search(int*, int, int, int*)_param_3];
+        mov.u32         %r4, %ntid.x;
+        mov.u32         %r5, %ctaid.x;
+        mov.u32         %r6, %tid.x;
+        mad.lo.s32      %r1, %r5, %r4, %r6;
+        setp.ge.s32     %p1, %r1, %r3;
+        @%p1 bra        $L__BB0_3;
+
+        cvta.to.global.u64      %rd3, %rd1;
+        mul.wide.s32    %rd4, %r1, 4;
+        add.s64         %rd5, %rd3, %rd4;
+        ld.global.u32   %r7, [%rd5];
+        setp.ne.s32     %p2, %r7, %r2;
+        @%p2 bra        $L__BB0_3;
+
+        cvta.to.global.u64      %rd6, %rd2;
+        atom.global.min.s32     %r8, [%rd6], %r1;
+
+$L__BB0_3:
+        ret;
+
+}
+        {
+
+        }",0.031599 seconds, 0.000384 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+int main()
+{
+    const int N = 100000000;
+    int* arr = (int*)malloc(N * sizeof(int));
+    int* map = (int*)malloc(N * sizeof(int));
+    srand(time(NULL));
+    clock_t start = clock();
+
+    for (int i = 0; i < N; i++)
+    {
+        arr[i] = rand() % 10;
+        map[i] = arr[i] * 2;
+    }
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    free(arr);
+    free(map);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+
+__global__ void mapKernel(int* arr, int* map, int N)
+{
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < N)
+    {
+        map[tid] = arr[tid] * 2;
+    }
+}
+
+int main()
+{
+    const int N = 100000000;
+    int* arr = (int*)malloc(N * sizeof(int));
+    int* map = (int*)malloc(N * sizeof(int));
+    int* d_arr;
+    int* d_map;
+    cudaMalloc(&d_arr, N * sizeof(int));
+    cudaMalloc(&d_map, N * sizeof(int));
+    srand(time(NULL));
+    clock_t start = clock();
+
+    for (int i = 0; i < N; i++)
+    {
+        arr[i] = rand() % 10;
+    }
+
+    cudaMemcpy(d_arr, arr, N * sizeof(int), cudaMemcpyHostToDevice);
+    mapKernel<<<(N + 255) / 256, 256>>>(d_arr, d_map, N);
+    cudaMemcpy(map, d_map, N * sizeof(int), cudaMemcpyDeviceToHost);
+
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    free(arr);
+    free(map);
+    cudaFree(d_arr);
+    cudaFree(d_map);
+
+    return 0;
+}
+",".LC1:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 48
+        mov     DWORD PTR [rbp-8], 10000000
+        mov     edi, 40000000
+        call    malloc
+        mov     QWORD PTR [rbp-16], rax
+        mov     edi, 40000000
+        call    malloc
+        mov     QWORD PTR [rbp-24], rax
+        mov     edi, 0
+        call    time
+        mov     edi, eax
+        call    srand
+        call    clock
+        mov     QWORD PTR [rbp-32], rax
+        mov     DWORD PTR [rbp-4], 0
+        jmp     .L2
+.L3:
+        call    rand
+        mov     ecx, eax
+        mov     eax, DWORD PTR [rbp-4]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-16]
+        lea     rsi, [rdx+rax]
+        movsx   rax, ecx
+        imul    rax, rax, 1717986919
+        shr     rax, 32
+        mov     edx, eax
+        sar     edx, 2
+        mov     eax, ecx
+        sar     eax, 31
+        sub     edx, eax
+        mov     eax, edx
+        sal     eax, 2
+        add     eax, edx
+        add     eax, eax
+        sub     ecx, eax
+        mov     edx, ecx
+        mov     DWORD PTR [rsi], edx
+        mov     eax, DWORD PTR [rbp-4]
+        cdqe
+        lea     rdx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-16]
+        add     rax, rdx
+        mov     edx, DWORD PTR [rax]
+        mov     eax, DWORD PTR [rbp-4]
+        cdqe
+        lea     rcx, [0+rax*4]
+        mov     rax, QWORD PTR [rbp-24]
+        add     rax, rcx
+        add     edx, edx
+        mov     DWORD PTR [rax], edx
+        add     DWORD PTR [rbp-4], 1
+.L2:
+        cmp     DWORD PTR [rbp-4], 9999999
+        jle     .L3
+        call    clock
+        mov     QWORD PTR [rbp-40], rax
+        mov     rax, QWORD PTR [rbp-40]
+        sub     rax, QWORD PTR [rbp-32]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-48], xmm0
+        mov     rax, QWORD PTR [rbp-48]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 1
+        call    printf
+        mov     rax, QWORD PTR [rbp-16]
+        mov     rdi, rax
+        call    free
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rdi, rax
+        call    free
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".visible .entry mapKernel(int*, int*, int)(
+        .param .u64 mapKernel(int*, int*, int)_param_0,
+        .param .u64 mapKernel(int*, int*, int)_param_1,
+        .param .u32 mapKernel(int*, int*, int)_param_2
+)
+{
+
+        ld.param.u64    %rd1, [mapKernel(int*, int*, int)_param_0];
+        ld.param.u64    %rd2, [mapKernel(int*, int*, int)_param_1];
+        ld.param.u32    %r2, [mapKernel(int*, int*, int)_param_2];
+        mov.u32         %r3, %ctaid.x;
+        mov.u32         %r4, %ntid.x;
+        mov.u32         %r5, %tid.x;
+        mad.lo.s32      %r1, %r3, %r4, %r5;
+        setp.ge.s32     %p1, %r1, %r2;
+        @%p1 bra        $L__BB0_2;
+
+        cvta.to.global.u64      %rd3, %rd1;
+        mul.wide.s32    %rd4, %r1, 4;
+        add.s64         %rd5, %rd3, %rd4;
+        ld.global.u32   %r6, [%rd5];
+        shl.b32         %r7, %r6, 1;
+        cvta.to.global.u64      %rd6, %rd2;
+        add.s64         %rd7, %rd6, %rd4;
+        st.global.u32   [%rd7], %r7;
+
+$L__BB0_2:
+        ret;
+
+}
+",0.168559 seconds,0.244780 seconds
+"#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+struct Node {
+    int value;
+    struct Node* left;
+    struct Node* right;
+};
+
+struct Stack {
+    struct Node* data;
+    struct Stack* next;
+};
+
+void push(struct Stack** top, struct Node* data)
+{
+    struct Stack* new_node = (struct Stack*) malloc(sizeof(struct Stack));
+    new_node->data = data;
+    new_node->next = (*top);
+    (*top) = new_node;
+}
+
+struct Node* pop(struct Stack** top)
+{
+    if (*top == NULL) {
+        return NULL;
+    }
+    struct Node* popped_node = (*top)->data;
+    struct Stack* temp = *top;
+    (*top) = (*top)->next;
+    free(temp);
+    return popped_node;
+}
+
+void traverseTree(struct Node* root)
+{
+    struct Stack* stack = NULL;
+    struct Node* current_node = root;
+
+    while (current_node != NULL || stack != NULL) {
+        while (current_node != NULL) {
+            push(&stack, current_node);
+            current_node = current_node->left;
+        }
+        current_node = pop(&stack);
+        // Perform some operation on the node value
+        current_node = current_node->right;
+    }
+}
+
+int main()
+{
+    struct Node* root = (struct Node*) malloc(sizeof(struct Node));
+    // Code to initialize the tree with random values
+    clock_t start = clock();
+    traverseTree(root);
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define N 100000000
+
+struct Node {
+    int value;
+    struct Node* left;
+    struct Node* right;
+};
+
+__global__ void traverseTreeKernel(struct Node* node, int* stack, int* top)
+{
+    if (node == NULL) {
+        return;
+    }
+    stack[*top] = (int) node;
+    (*top)++;
+    while (*top > 0) {
+        (*top)--;
+        int currentNode = stack[*top];
+        struct Node* current = (struct Node*) currentNode;
+        // Perform some operation on the node value
+        if (current->right != NULL) {
+            stack[*top] = (int) current->right;
+            (*top)++;
+        }
+        if (current->left != NULL) {
+            stack[*top] = (int) current->left;
+            (*top)++;
+        }
+    }
+}
+
+void traverseTree(struct Node* node)
+{
+    int* stack;
+    int* top;
+    cudaMalloc(&stack, N * sizeof(int));
+    cudaMalloc(&top, sizeof(int));
+    int initialTop = 0;
+    cudaMemcpy(top, &initialTop, sizeof(int), cudaMemcpyHostToDevice);
+    traverseTreeKernel<<<1,1>>>(node, stack, top);
+    cudaDeviceSynchronize();
+    cudaFree(stack);
+    cudaFree(top);
+}
+
+int main()
+{
+    struct Node* root = (struct Node*) malloc(sizeof(struct Node));
+    // Code to initialize the tree with random values
+    clock_t start = clock();
+    traverseTree(root);
+    clock_t end = clock();
+    double elapsed_time = ((double)(end - start)) / CLOCKS_PER_SEC;
+    printf(""Elapsed time = %f seconds\n"", elapsed_time);
+
+    return 0;
+}
+","push(Stack**, Node*):
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 32
+        mov     QWORD PTR [rbp-24], rdi
+        mov     QWORD PTR [rbp-32], rsi
+        mov     edi, 16
+        call    malloc
+        mov     QWORD PTR [rbp-8], rax
+        mov     rax, QWORD PTR [rbp-8]
+        mov     rdx, QWORD PTR [rbp-32]
+        mov     QWORD PTR [rax], rdx
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rdx, QWORD PTR [rax]
+        mov     rax, QWORD PTR [rbp-8]
+        mov     QWORD PTR [rax+8], rdx
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rdx, QWORD PTR [rbp-8]
+        mov     QWORD PTR [rax], rdx
+        nop
+        leave
+        ret
+pop(Stack**):
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 32
+        mov     QWORD PTR [rbp-24], rdi
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rax, QWORD PTR [rax]
+        test    rax, rax
+        jne     .L3
+        mov     eax, 0
+        jmp     .L4
+.L3:
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rax, QWORD PTR [rax]
+        mov     rax, QWORD PTR [rax]
+        mov     QWORD PTR [rbp-8], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rax, QWORD PTR [rax]
+        mov     QWORD PTR [rbp-16], rax
+        mov     rax, QWORD PTR [rbp-24]
+        mov     rax, QWORD PTR [rax]
+        mov     rdx, QWORD PTR [rax+8]
+        mov     rax, QWORD PTR [rbp-24]
+        mov     QWORD PTR [rax], rdx
+        mov     rax, QWORD PTR [rbp-16]
+        mov     rdi, rax
+        call    free
+        mov     rax, QWORD PTR [rbp-8]
+.L4:
+        leave
+        ret
+traverseTree(Node*):
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 32
+        mov     QWORD PTR [rbp-24], rdi
+        mov     QWORD PTR [rbp-16], 0
+        mov     rax, QWORD PTR [rbp-24]
+        mov     QWORD PTR [rbp-8], rax
+        jmp     .L6
+.L8:
+        mov     rdx, QWORD PTR [rbp-8]
+        lea     rax, [rbp-16]
+        mov     rsi, rdx
+        mov     rdi, rax
+        call    push(Stack**, Node*)
+        mov     rax, QWORD PTR [rbp-8]
+        mov     rax, QWORD PTR [rax+8]
+        mov     QWORD PTR [rbp-8], rax
+.L7:
+        cmp     QWORD PTR [rbp-8], 0
+        jne     .L8
+        lea     rax, [rbp-16]
+        mov     rdi, rax
+        call    pop(Stack**)
+        mov     QWORD PTR [rbp-8], rax
+        mov     rax, QWORD PTR [rbp-8]
+        mov     rax, QWORD PTR [rax+16]
+        mov     QWORD PTR [rbp-8], rax
+.L6:
+        cmp     QWORD PTR [rbp-8], 0
+        jne     .L7
+        mov     rax, QWORD PTR [rbp-16]
+        test    rax, rax
+        jne     .L7
+        nop
+        nop
+        leave
+        ret
+.LC1:
+        .string ""Elapsed time = %f seconds\n""
+main:
+        push    rbp
+        mov     rbp, rsp
+        sub     rsp, 32
+        mov     edi, 24
+        call    malloc
+        mov     QWORD PTR [rbp-8], rax
+        call    clock
+        mov     QWORD PTR [rbp-16], rax
+        mov     rax, QWORD PTR [rbp-8]
+        mov     rdi, rax
+        call    traverseTree(Node*)
+        call    clock
+        mov     QWORD PTR [rbp-24], rax
+        mov     rax, QWORD PTR [rbp-24]
+        sub     rax, QWORD PTR [rbp-16]
+        pxor    xmm0, xmm0
+        cvtsi2sd        xmm0, rax
+        movsd   xmm1, QWORD PTR .LC0[rip]
+        divsd   xmm0, xmm1
+        movsd   QWORD PTR [rbp-32], xmm0
+        mov     rax, QWORD PTR [rbp-32]
+        movq    xmm0, rax
+        mov     edi, OFFSET FLAT:.LC1
+        mov     eax, 1
+        call    printf
+        mov     eax, 0
+        leave
+        ret
+.LC0:
+        .long   0
+        .long   1093567616",".visible .entry traverseTreeKernel(Node*, int*, int*)(
+        .param .u64 traverseTreeKernel(Node*, int*, int*)_param_0,
+        .param .u64 traverseTreeKernel(Node*, int*, int*)_param_1,
+        .param .u64 traverseTreeKernel(Node*, int*, int*)_param_2
+)
+{
+
+        ld.param.u64    %rd7, [traverseTreeKernel(Node*, int*, int*)_param_0];
+        ld.param.u64    %rd8, [traverseTreeKernel(Node*, int*, int*)_param_1];
+        ld.param.u64    %rd9, [traverseTreeKernel(Node*, int*, int*)_param_2];
+        cvta.to.global.u64      %rd1, %rd8;
+        cvta.to.global.u64      %rd2, %rd9;
+        setp.eq.s64     %p1, %rd7, 0;
+        @%p1 bra        $L__BB0_8;
+
+        ld.global.u32   %r8, [%rd2];
+        mul.wide.s32    %rd10, %r8, 4;
+        add.s64         %rd11, %rd1, %rd10;
+        st.global.u32   [%rd11], %rd7;
+        ld.global.u32   %r9, [%rd2];
+        add.s32         %r14, %r9, 1;
+        st.global.u32   [%rd2], %r14;
+        setp.lt.s32     %p2, %r9, 0;
+        @%p2 bra        $L__BB0_8;
+
+$L__BB0_3:
+        add.s32         %r14, %r14, -1;
+        st.global.u32   [%rd2], %r14;
+        mul.wide.s32    %rd12, %r14, 4;
+        add.s64         %rd3, %rd1, %rd12;
+        ld.global.s32   %rd4, [%rd3];
+        ld.u64  %rd5, [%rd4+16];
+        setp.eq.s64     %p3, %rd5, 0;
+        @%p3 bra        $L__BB0_5;
+
+        st.global.u32   [%rd3], %rd5;
+        ld.global.u32   %r10, [%rd2];
+        add.s32         %r14, %r10, 1;
+        st.global.u32   [%rd2], %r14;
+
+$L__BB0_5:
+        ld.u64  %rd6, [%rd4+8];
+        setp.eq.s64     %p4, %rd6, 0;
+        @%p4 bra        $L__BB0_7;
+
+        mul.wide.s32    %rd13, %r14, 4;
+        add.s64         %rd14, %rd1, %rd13;
+        st.global.u32   [%rd14], %rd6;
+        ld.global.u32   %r11, [%rd2];
+        add.s32         %r14, %r11, 1;
+        st.global.u32   [%rd2], %r14;
+
+$L__BB0_7:
+        setp.gt.s32     %p5, %r14, 0;
+        @%p5 bra        $L__BB0_3;
+
+$L__BB0_8:
+        ret;
+
+}
+",0.000001 seconds,0.413894 seconds
