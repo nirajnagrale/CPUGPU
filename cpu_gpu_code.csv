@@ -1,4 +1,4 @@
-CPU Code,GPU Code,CPU assembly code ,GPU ptx code,CPU runing time,GPU runing time
+CPU Code,GPU Code,CPU assembly code ,GPU ptx code,CPU running time,GPU running time
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -190,7 +190,7 @@ $L__BB0_2:
 }
         {
 
-        }",0.274089 seconds,0.040667 seconds
+        }",0.274089,0.040667
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -350,7 +350,7 @@ $L__BB0_2:
         ret;
 
 }
-",0.274089 seconds,0.449691 seconds
+",0.274089,0.449691
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -673,7 +673,7 @@ $L__BB0_18:
         ret;
 
 }
-",0.445076 seconds,2.110642 seconds
+",0.445076,2.110642
 "#include <stdio.h>
 #include <stdlib.h>
 #include <cuda_runtime.h>
@@ -899,7 +899,7 @@ $L__BB0_2:
 }
         {
 
-        }",0.022509 seconds,0.000651 seconds
+        }",0.022509,0.000651
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -1099,7 +1099,7 @@ $L__BB0_2:
 }
         {
 
-        }",0.022509 seconds,0.000651 seconds
+        }",0.022509,0.000651
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -1387,7 +1387,7 @@ $L__BB0_2:
         ret;
 
 }
-",0.000018 seconds,0.000438 seconds
+",0.000018,0.000438
 " #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -1779,7 +1779,7 @@ $L__BB0_6:
 $L__BB0_7:
         ret;
 
-}",0.000002 seconds,0.000272 seconds
+}",0.000002,0.000272
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -2249,7 +2249,7 @@ $L__BB0_9:
         } // callseq 6
         ret;
 
-}",0.000002 seconds,0.000044 seconds
+}",0.000002,0.000044
 "#include <stdio.h>
 #include <string.h>
 
@@ -2417,7 +2417,7 @@ $L__BB0_3:
 }
         {
 
-        }",0.000023 seconds,2.143957 seconds
+        }",0.000023,2.143957
 "#include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -2633,7 +2633,7 @@ $L__BB0_5:
 }
         {
 
-        }", 0.286721 seconds,0.000564 seconds
+        }",0.286721,0.000564
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -2871,7 +2871,7 @@ main:
 $L__BB0_2:
         ret;
 
-}",0.416105 seconds,0.455570 seconds
+}",0.416105,0.45557
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -3214,7 +3214,7 @@ $L__BB0_17:
 $L__BB0_18:
         ret;
 
-}",0.262003 seconds,4.538758 seconds
+}",0.262003,4.538758
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -3440,7 +3440,7 @@ $L__BB0_3:
 }
         {
 
-        }",0.031599 seconds, 0.000384 seconds
+        }",0.031599,0.000384
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -3630,7 +3630,7 @@ $L__BB0_2:
         ret;
 
 }
-",0.168559 seconds,0.244780 seconds
+",0.168559,0.24478
 "#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -3939,4 +3939,4 @@ $L__BB0_8:
         ret;
 
 }
-",0.000001 seconds,0.413894 seconds
+",0.000001,0.413894
